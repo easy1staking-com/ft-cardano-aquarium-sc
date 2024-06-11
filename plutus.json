@@ -1,0 +1,240 @@
+{
+  "preamble": {
+    "title": "fluidtokens/aquarium",
+    "description": "Aiken contracts for project 'fluidtokens/aquarium'",
+    "version": "0.0.0",
+    "plutusVersion": "v2",
+    "compiler": {
+      "name": "Aiken",
+      "version": "v1.0.28-alpha+c9a1519"
+    },
+    "license": "Apache-2.0"
+  },
+  "validators": [
+    {
+      "title": "feetank.acquariumValidator",
+      "datum": {
+        "title": "datum",
+        "schema": {
+          "$ref": "#/definitions/feetank~1Datum"
+        }
+      },
+      "redeemer": {
+        "title": "redeemer",
+        "schema": {
+          "$ref": "#/definitions/feetank~1Redeemer"
+        }
+      },
+      "compiledCode": "5908740100003232323232323223232323223225333009323232323232533300f300b30103754002264646464646464646464646464a6660386034018264646464a666040603c60426ea80044c8c8c94ccc08cc084c090dd5000899192999812981198131baa00113232323253330293375e034603c60566ea802454ccc0a4cc048dd6180f18159baa02800c1533302932533302a30153756604260586ea801c54ccc0a8cdc380099b8100200413375e602e60586ea8c084c0b0dd5005180b98161baa00714a02940ccc044dd5981018159baa0064890048810013333301300400200300c3020302b375405029405280a503330103756603e60546ea801d22010048810033300f3756603c60526ea8008dd7180e18149baa00a375c603c60526ea8028ccc038dd5980918141baa301b3028375403c910100488100302a302737540022c660126eb0c044c098dd5180c98131baa01c3370000c9001181418129baa00116330073758601e60486ea8c05cc090dd500d002180c18119baa0013025302237540022c660086600c6eb0c050c084dd5180a18109baa017012001375a604660480046044002603c6ea805854ccc070c0600304c8c8c8c94ccc080c078c084dd500089919192999811981098121baa00113232323253330273375e030603860526ea801c54ccc09ccdc48008018a999813998081bac301c3029375404c014266666022008004006014603c60526ea80985280a5014a066601c6eacc074c0a0dd5002a450048810033300d37566038604e6ea8008dd7180d18139baa008375c6038604e6ea8020ccc030dd5980818131baa3019302637540389101004881003028302537540022c6600e6eb0c03cc090dd5180b98121baa01a004301830233754002604a60446ea800458cc010cc018dd6180a18109baa30143021375402e0240026eb4c08cc090008c088004c078dd500b09919299980f180e180f9baa00113322323300100100322533302500114a0264a66604666e3cdd718140010020a511330030030013028001375860466048604860486048604860486048604860406ea8008dd7181198101baa001163012301f37546028603e6ea8070c044c078dd500a180080091129998100010a60103d87a800013232533301f301d00313013330230024bd70099980280280099b8000348004c09000cc08800888cc0440088c94ccc074c064c078dd5000899b8f375c6044603e6ea800400c5281808980f1baa3011301e37546026603c6ea8004888c94ccc070c060c074dd50008a400026eb4c084c078dd500099299980e180c180e9baa00114c103d87a80001323300100137566044603e6ea8008894ccc084004530103d87a80001323232325333022337220100042a66604466e3c0200084c058cc098dd4000a5eb80530103d87a8000133006006003375a60460066eb8c084008c094008c08c004c8cc004004010894ccc0800045300103d87a80001323232325333021337220100042a66604266e3c0200084c054cc094dd3000a5eb80530103d87a8000133006006003375660440066eb8c080008c090008c08800488c8cc00400400c894ccc078004528099299980e19baf302100200414a2266006006002604200244444a66603666e2400ccdc199b82004375a6010603a6ea8008dd69803980e9baa0021533301b3375e6020603a6ea80140044c018dd59809180e9baa00514a029408cdc49802191980080080111299980d8008a5eb804c8ccc888c8cc00400400c894ccc084004400c4c8cc08cdd3998119ba90063302330200013302330210014bd7019801801981280118118009bae301a0013756603600266006006603e004603a00290051180d180d980d980d8009180c980d180d000980080091299980b0008a4000266e01200233002002301900130113754014602860226ea8004528180298081baa0063322533300f300b3010375400426464a666022601e60246ea80044c94ccc048c038c04cdd500089bae3017301437540022c600c60266ea8c018c04cdd5180418099baa3016301337540022c64a6660280022980103d87a8000130053301530160014bd7019803001119baf300630133754002004602860226ea800858c010c03cdd50029bac3002300f37546004601e6ea8014dd2a40004602200244646600200200644a666022002297ae0132325333010300500213301400233004004001133004004001301500230130012300f301000114984d958c94ccc020c0180044c8c8c8c94ccc03cc0480084c926300900316375a60200026020004601c00260146ea800854ccc020c0100044c8c8c8c94ccc03cc0480084c926300900316375a60200026020004601c00260146ea800854ccc020cdc3a40080022a66601660146ea800852616163008375400264a66600c6008600e6ea80144c8c8c8c94ccc034c0400084c8c926533300b3009300c3754004264646464a666024602a0042646493192999808980780089919299980b180c80109924c64a666028602400226464a66603260380042649318088008b180d000980b1baa0021533301430100011323232323232533301d3020002149858dd6980f000980f0011bad301c001301c002375a6034002602c6ea800858c050dd50008b180b80098099baa00315333011300d00115333014301337540062930b0b18089baa002300a00316301300130130023011001300d37540042c646600200200844a66601e002293099198018019809801180498088008b180700098070011bac300c0013008375400a2c464a66600e600a00226464a666018601e0042930b1bae300d001300937540042a66600e600600226464a666018601e0042930b1bae300d001300937540042c600e6ea8004dc3a40044a6660086004600a6ea80044c8c8c8c8c8c8c8c94ccc03cc04800852616375a602000260200046eb4c038004c038008dd7180600098060011bae300a001300637540022c6e1d20005734aae7555cf2ab9f5740ae855d101",
+      "hash": "c6748270f7915b17e8286b7317fcdac27276d4375b30bf4ae3c6a14e"
+    }
+  ],
+  "definitions": {
+    "ByteArray": {
+      "dataType": "bytes"
+    },
+    "Int": {
+      "dataType": "integer"
+    },
+    "List$feetank/CardanoToken": {
+      "dataType": "list",
+      "items": {
+        "$ref": "#/definitions/feetank~1CardanoToken"
+      }
+    },
+    "Option$aiken/transaction/credential/Referenced$aiken/transaction/credential/Credential": {
+      "title": "Optional",
+      "anyOf": [
+        {
+          "title": "Some",
+          "description": "An optional value.",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Referenced$aiken~1transaction~1credential~1Credential"
+            }
+          ]
+        },
+        {
+          "title": "None",
+          "description": "Nothing.",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": []
+        }
+      ]
+    },
+    "aiken/transaction/credential/Address": {
+      "title": "Address",
+      "description": "A Cardano `Address` typically holding one or two credential references.\n\n Note that legacy bootstrap addresses (a.k.a. 'Byron addresses') are\n completely excluded from Plutus contexts. Thus, from an on-chain\n perspective only exists addresses of type 00, 01, ..., 07 as detailed\n in [CIP-0019 :: Shelley Addresses](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0019/#shelley-addresses).",
+      "anyOf": [
+        {
+          "title": "Address",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "payment_credential",
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Credential"
+            },
+            {
+              "title": "stake_credential",
+              "$ref": "#/definitions/Option$aiken~1transaction~1credential~1Referenced$aiken~1transaction~1credential~1Credential"
+            }
+          ]
+        }
+      ]
+    },
+    "aiken/transaction/credential/Credential": {
+      "title": "Credential",
+      "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
+      "anyOf": [
+        {
+          "title": "VerificationKeyCredential",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        },
+        {
+          "title": "ScriptCredential",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "$ref": "#/definitions/ByteArray"
+            }
+          ]
+        }
+      ]
+    },
+    "aiken/transaction/credential/Referenced$aiken/transaction/credential/Credential": {
+      "title": "Referenced",
+      "description": "Represent a type of object that can be represented either inline (by hash)\n or via a reference (i.e. a pointer to an on-chain location).\n\n This is mainly use for capturing pointers to a stake credential\n registration certificate in the case of so-called pointer addresses.",
+      "anyOf": [
+        {
+          "title": "Inline",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Credential"
+            }
+          ]
+        },
+        {
+          "title": "Pointer",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "slot_number",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "transaction_index",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "certificate_index",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "feetank/CardanoToken": {
+      "title": "CardanoToken",
+      "anyOf": [
+        {
+          "title": "CardanoToken",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "policyId",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "assetName",
+              "$ref": "#/definitions/ByteArray"
+            },
+            {
+              "title": "amount",
+              "$ref": "#/definitions/Int"
+            },
+            {
+              "title": "divider",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        }
+      ]
+    },
+    "feetank/Datum": {
+      "title": "Datum",
+      "anyOf": [
+        {
+          "title": "Datum",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "allowedTokens",
+              "$ref": "#/definitions/List$feetank~1CardanoToken"
+            },
+            {
+              "title": "tankOwner",
+              "$ref": "#/definitions/aiken~1transaction~1credential~1Address"
+            }
+          ]
+        }
+      ]
+    },
+    "feetank/Redeemer": {
+      "title": "Redeemer",
+      "anyOf": [
+        {
+          "title": "Consume",
+          "dataType": "constructor",
+          "index": 0,
+          "fields": [
+            {
+              "title": "payingToken",
+              "$ref": "#/definitions/feetank~1CardanoToken"
+            },
+            {
+              "title": "inputTankIndex",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "ConsumeAll",
+          "dataType": "constructor",
+          "index": 1,
+          "fields": [
+            {
+              "title": "payingToken",
+              "$ref": "#/definitions/feetank~1CardanoToken"
+            },
+            {
+              "title": "inputTankIndex",
+              "$ref": "#/definitions/Int"
+            }
+          ]
+        },
+        {
+          "title": "Withdraw",
+          "dataType": "constructor",
+          "index": 2,
+          "fields": []
+        }
+      ]
+    }
+  }
+}

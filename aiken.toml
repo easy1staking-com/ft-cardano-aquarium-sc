@@ -1,0 +1,16 @@
+name = "fluidtokens/aquarium"
+version = "0.0.0"
+compiler = "v1.0.28-alpha"
+plutus = "v2"
+license = "Apache-2.0"
+description = "Aiken contracts for project 'fluidtokens/aquarium'"
+
+[repository]
+user = "fluidtokens"
+project = "aquarium"
+platform = "github"
+
+[[dependencies]]
+name = "aiken-lang/stdlib"
+version = "1.9.0"
+source = "github"
