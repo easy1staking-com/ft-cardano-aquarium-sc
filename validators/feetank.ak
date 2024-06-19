@@ -128,9 +128,10 @@ fn validate_tank_output(
   and {
     check_dos_protection(outputTank.value),
     // verify that the output tank is equal than the input tank - fee (only ADA)
-    outputTankAmount == inputTankAmount - feeAmount,
+    outputTankAmount >= inputTankAmount - feeAmount,
     // verify that the input tank datum is equal to the output tank datum
     inputTank.output.datum == outputTank.datum,
+    outputTank.address == inputTank.output.address,
   }
 }
 
