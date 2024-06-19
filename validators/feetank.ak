@@ -142,7 +142,7 @@ fn validate_payment_output(
   tankOwner: Address,
 ) {
   and {
-    outputPaymentAmount * payingToken.amount / payingToken.divider >= feeAmount,
+    feeAmount * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
     check_dos_protection(outputPayment.value),
   }
