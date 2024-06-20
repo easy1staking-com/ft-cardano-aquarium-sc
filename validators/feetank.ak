@@ -17,8 +17,8 @@ type Datum {
 }
 
 type Redeemer {
-  Consume { payingToken: CardanoToken, inputTankIndex: Int }
-  ConsumeAll { payingToken: CardanoToken, inputTankIndex: Int }
+  Consume { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
+  ConsumeAll { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
   Withdraw
 }
 
@@ -28,7 +28,7 @@ validator {
     when ctx.purpose is {
       Spend(currentInput) ->
         when redeemer is {
-          Consume(payingToken, inputTankIndex) -> {
+          Consume(payingToken, inputTankIndex, receivers) -> {
             expect Some(inputTank) =
               list.at(
                 get_inputs_from_sc(ctx.transaction.inputs, ownScriptHash),
@@ -61,6 +61,7 @@ validator {
                 outputTank,
                 inputTankAmount,
                 feeAmount,
+                receivers,
               ),
               validate_payment_output(
                 outputPayment,
@@ -68,11 +69,12 @@ validator {
                 feeAmount,
                 payingToken,
                 datum.tankOwner,
+                receivers,
               ),
             }
           }
 
-          ConsumeAll(payingToken, inputTankIndex) -> {
+          ConsumeAll(payingToken, inputTankIndex, receivers) -> {
             expect Some(inputTank) =
               list.at(
                 get_inputs_from_sc(ctx.transaction.inputs, ownScriptHash),
@@ -107,6 +109,7 @@ validator {
                 feeAmount,
                 payingToken,
                 datum.tankOwner,
+                receivers,
               ),
             }
           }
@@ -123,12 +126,15 @@ fn validate_tank_output(
   outputTank: Output,
   inputTankAmount: Int,
   feeAmount: Int,
+  receivers: Int,
 ) {
   let outputTankAmount = quantity_of(outputTank.value, "", "")
   and {
     check_dos_protection(outputTank.value),
     // verify that the output tank is equal than the input tank - fee (only ADA)
-    outputTankAmount >= inputTankAmount - feeAmount,
+    outputTankAmount >= inputTankAmount - feeAmount - 1500000 * (
+      receivers + 1
+    ),
     // verify that the input tank datum is equal to the output tank datum
     inputTank.output.datum == outputTank.datum,
     outputTank.address == inputTank.output.address,
@@ -141,9 +147,10 @@ fn validate_payment_output(
   feeAmount: Int,
   payingToken: CardanoToken,
   tankOwner: Address,
+  receivers: Int,
 ) {
   and {
-    feeAmount * payingToken.amount / payingToken.divider <= outputPaymentAmount,
+    ( feeAmount + 1500000 * receivers ) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
     check_dos_protection(outputPayment.value),
   }
