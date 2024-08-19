@@ -145,13 +145,16 @@ validator {
 
           Withdraw -> must_be_signed_by(ctx.transaction, datum.tankOwner)
 
-          ScheduledTransaction(whitelistedAddresses) ->
-            list.any(
-              whitelistedAddresses,
-              fn(addr) { must_be_signed_by(ctx.transaction, addr) },
-            )
+          ScheduledTransaction(whitelistedAddresses) -> and {
+              list.length(whitelistedAddresses) > 0,
+              list.any(
+                whitelistedAddresses,
+                fn(addr) { must_be_signed_by(ctx.transaction, addr) },
+              ),
+            }
         }
 
+      // Controlla se almeno uno è firmato
       _ -> False
     }
   }
