@@ -1,4 +1,5 @@
 use aiken/list.{length}
+use aiken/time.{PosixTime}
 use aiken/transaction.{Input, Output, ScriptContext, Spend, Transaction}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value.{AssetName, PolicyId, Value, flatten, quantity_of}
@@ -14,12 +15,27 @@ type CardanoToken {
 type Datum {
   allowedTokens: List<CardanoToken>,
   tankOwner: Address,
+  whitelistedAddresses: List<Address>,
+  exectutionTime: PosixTime,
+  destionationaAddress: Address,
+  reward: CardanoToken,
 }
 
 type Redeemer {
-  Consume { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
-  ConsumeAll { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
+  Consume {
+    payingToken: CardanoToken,
+    inputTankIndex: Int,
+    receivers: Int,
+    whitelistedAddresses: List<Address>,
+  }
+  ConsumeAll {
+    payingToken: CardanoToken,
+    inputTankIndex: Int,
+    receivers: Int,
+    whitelistedAddresses: List<Address>,
+  }
   Withdraw
+  ScheduledTransaction { whitelistedAddresses: List<Address> }
 }
 
 validator {
@@ -28,7 +44,7 @@ validator {
     when ctx.purpose is {
       Spend(currentInput) ->
         when redeemer is {
-          Consume(payingToken, inputTankIndex, receivers) -> {
+          Consume(payingToken, inputTankIndex, receivers, whitelistedAddresses) -> {
             expect Some(inputTank) =
               list.at(
                 get_inputs_from_sc(ctx.transaction.inputs, ownScriptHash),
@@ -71,10 +87,19 @@ validator {
                 datum.tankOwner,
                 receivers,
               ),
+              list.any(
+                whitelistedAddresses,
+                fn(addr) { must_be_signed_by(ctx.transaction, addr) },
+              ),
             }
           }
 
-          ConsumeAll(payingToken, inputTankIndex, receivers) -> {
+          ConsumeAll(
+            payingToken,
+            inputTankIndex,
+            receivers,
+            whitelistedAddresses,
+          ) -> {
             expect Some(inputTank) =
               list.at(
                 get_inputs_from_sc(ctx.transaction.inputs, ownScriptHash),
@@ -111,11 +136,22 @@ validator {
                 datum.tankOwner,
                 receivers,
               ),
+              list.any(
+                whitelistedAddresses,
+                fn(addr) { must_be_signed_by(ctx.transaction, addr) },
+              ),
             }
           }
 
           Withdraw -> must_be_signed_by(ctx.transaction, datum.tankOwner)
+
+          ScheduledTransaction(whitelistedAddresses) ->
+            list.any(
+              whitelistedAddresses,
+              fn(addr) { must_be_signed_by(ctx.transaction, addr) },
+            )
         }
+
       _ -> False
     }
   }
