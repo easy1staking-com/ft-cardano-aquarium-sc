@@ -18,6 +18,7 @@ type Datum {
   whitelistedAddresses: List<Address>,
   exectutionTime: PosixTime,
   destionationaAddress: Address,
+  scheduledAmount: CardanoToken,
   reward: CardanoToken,
 }
 
@@ -124,8 +125,24 @@ validator {
 
           Withdraw -> must_be_signed_by(ctx.transaction, datum.tankOwner)
 
-          ScheduledTransaction ->
-            isWhitelisted(ctx.transaction, datum.whitelistedAddresses)
+          ScheduledTransaction -> {
+            expect Some(outputScheduled) = list.at(ctx.transaction.outputs, 0)
+            let outputPaymentAmount =
+              quantity_of(
+                outputScheduled.value,
+                datum.scheduledAmount.policyId,
+                datum.scheduledAmount.assetName,
+              )
+            and {
+              validate_scheduled_output(
+                outputScheduled,
+                outputPaymentAmount,
+                datum.scheduledAmount,
+                datum.destionationaAddress,
+              ),
+              isWhitelisted(ctx.transaction, datum.whitelistedAddresses),
+            }
+          }
         }
 
       // Controlla se almeno uno è firmato
@@ -195,5 +212,20 @@ fn isWhitelisted(transaction: Transaction, whitelistedAddresses: List<Address>) 
     )
   } else {
     True
+  }
+}
+
+//Here is all scheduled new functions
+
+fn validate_scheduled_output(
+  outputPayment: Output,
+  outputPaymentAmount: Int,
+  scheduledAmount: CardanoToken,
+  receiver: Address,
+) {
+  and {
+    scheduledAmount.amount / scheduledAmount.divider == outputPaymentAmount,
+    outputPayment.address == receiver,
+    check_dos_protection(outputPayment.value),
   }
 }
