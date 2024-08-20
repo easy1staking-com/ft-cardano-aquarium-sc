@@ -22,20 +22,10 @@ type Datum {
 }
 
 type Redeemer {
-  Consume {
-    payingToken: CardanoToken,
-    inputTankIndex: Int,
-    receivers: Int,
-    whitelistedAddresses: List<Address>,
-  }
-  ConsumeAll {
-    payingToken: CardanoToken,
-    inputTankIndex: Int,
-    receivers: Int,
-    whitelistedAddresses: List<Address>,
-  }
+  Consume { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
+  ConsumeAll { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
   Withdraw
-  ScheduledTransaction { whitelistedAddresses: List<Address> }
+  ScheduledTransaction
 }
 
 validator {
@@ -44,7 +34,7 @@ validator {
     when ctx.purpose is {
       Spend(currentInput) ->
         when redeemer is {
-          Consume(payingToken, inputTankIndex, receivers, whitelistedAddresses) -> {
+          Consume(payingToken, inputTankIndex, receivers) -> {
             expect Some(inputTank) =
               list.at(
                 get_inputs_from_sc(ctx.transaction.inputs, ownScriptHash),
@@ -87,21 +77,11 @@ validator {
                 datum.tankOwner,
                 receivers,
               ),
-              // check if there are whitelisted addresses
-              list.length(whitelistedAddresses) > 0,
-              list.any(
-                whitelistedAddresses,
-                fn(addr) { must_be_signed_by(ctx.transaction, addr) },
-              ),
+              isWhitelisted(ctx.transaction, datum.whitelistedAddresses),
             }
           }
 
-          ConsumeAll(
-            payingToken,
-            inputTankIndex,
-            receivers,
-            whitelistedAddresses,
-          ) -> {
+          ConsumeAll(payingToken, inputTankIndex, receivers) -> {
             expect Some(inputTank) =
               list.at(
                 get_inputs_from_sc(ctx.transaction.inputs, ownScriptHash),
@@ -138,24 +118,14 @@ validator {
                 datum.tankOwner,
                 receivers,
               ),
-              // check if there are whitelisted addresses
-              list.length(whitelistedAddresses) > 0,
-              list.any(
-                whitelistedAddresses,
-                fn(addr) { must_be_signed_by(ctx.transaction, addr) },
-              ),
+              isWhitelisted(ctx.transaction, datum.whitelistedAddresses),
             }
           }
 
           Withdraw -> must_be_signed_by(ctx.transaction, datum.tankOwner)
 
-          ScheduledTransaction(whitelistedAddresses) -> and {
-              list.length(whitelistedAddresses) > 0,
-              list.any(
-                whitelistedAddresses,
-                fn(addr) { must_be_signed_by(ctx.transaction, addr) },
-              ),
-            }
+          ScheduledTransaction ->
+            isWhitelisted(ctx.transaction, datum.whitelistedAddresses)
         }
 
       // Controlla se almeno uno è firmato
@@ -215,4 +185,15 @@ fn check_dos_protection(value: Value) {
 fn must_be_signed_by(transaction: Transaction, address: Address) {
   expect VerificationKeyCredential(hash) = address.payment_credential
   list.has(transaction.extra_signatories, hash)
+}
+
+fn isWhitelisted(transaction: Transaction, whitelistedAddresses: List<Address>) {
+  if list.length(whitelistedAddresses) > 0 {
+    list.any(
+      whitelistedAddresses,
+      fn(addr) { must_be_signed_by(transaction, addr) },
+    )
+  } else {
+    True
+  }
 }
