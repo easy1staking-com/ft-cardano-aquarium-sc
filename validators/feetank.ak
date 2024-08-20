@@ -87,6 +87,8 @@ validator {
                 datum.tankOwner,
                 receivers,
               ),
+              // check if there are whitelisted addresses
+              list.length(whitelistedAddresses) > 0,
               list.any(
                 whitelistedAddresses,
                 fn(addr) { must_be_signed_by(ctx.transaction, addr) },
@@ -136,6 +138,8 @@ validator {
                 datum.tankOwner,
                 receivers,
               ),
+              // check if there are whitelisted addresses
+              list.length(whitelistedAddresses) > 0,
               list.any(
                 whitelistedAddresses,
                 fn(addr) { must_be_signed_by(ctx.transaction, addr) },
