@@ -1,3 +1,4 @@
+use aiken/cbor
 use aiken/list.{length}
 use aiken/time.{PosixTime}
 use aiken/transaction.{Input, Output, ScriptContext, Spend, Transaction}
@@ -145,6 +146,7 @@ validator {
           }
         }
 
+      //aggiungere controllo del resto eventuale, datum aggiornato e basta, inziamo a pensare siano entrambi ADA per semplicità
       // Controlla se almeno uno è firmato
       _ -> False
     }
@@ -159,6 +161,8 @@ fn validate_tank_output(
   receivers: Int,
 ) {
   let outputTankAmount = quantity_of(outputTank.value, "", "")
+  trace @"Ada going back into tank wrong or wrong datum or wrong address of tank"
+  trace cbor.diagnostic(outputTankAmount)
   and {
     check_dos_protection(outputTank.value),
     // verify that the output tank is equal than the input tank - fee (only ADA)
@@ -179,6 +183,12 @@ fn validate_payment_output(
   tankOwner: Address,
   receivers: Int,
 ) {
+  trace @"payment output wrong"
+  trace cbor.diagnostic(receivers)
+  trace cbor.diagnostic(feeAmount)
+  trace cbor.diagnostic(payingToken.amount / payingToken.divider)
+  trace cbor.diagnostic(outputPaymentAmount)
+
   and {
     ( feeAmount + 1500000 * receivers ) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
@@ -205,6 +215,7 @@ fn must_be_signed_by(transaction: Transaction, address: Address) {
 }
 
 fn isWhitelisted(transaction: Transaction, whitelistedAddresses: List<Address>) {
+  trace @"whitelist wrong"
   if list.length(whitelistedAddresses) > 0 {
     list.any(
       whitelistedAddresses,
