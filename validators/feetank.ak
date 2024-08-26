@@ -1,4 +1,5 @@
 use aiken/cbor
+use aiken/interval.{Finite}
 use aiken/list.{length}
 use aiken/time.{PosixTime}
 use aiken/transaction.{
@@ -19,7 +20,7 @@ type Datum {
   allowedTokens: List<CardanoToken>,
   tankOwner: Address,
   whitelistedAddresses: List<Address>,
-  exectutionTime: PosixTime,
+  executionTime: PosixTime,
   destionationaAddress: Address,
   scheduledAmount: CardanoToken,
   reward: CardanoToken,
@@ -161,6 +162,7 @@ validator {
                 inputTankAmount,
                 datum.scheduledAmount.amount + datum.reward.amount,
               ),
+              validate_time(ctx.transaction, datum.executionTime),
             }
           }
         }
@@ -279,7 +281,7 @@ fn validate_change_output(
         allowedTokens: datum.allowedTokens,
         tankOwner: datum.tankOwner,
         whitelistedAddresses: datum.whitelistedAddresses,
-        exectutionTime: datum.exectutionTime,
+        executionTime: datum.executionTime,
         destionationaAddress: datum.tankOwner,
         scheduledAmount: newAmount,
         reward: newAmount,
@@ -292,5 +294,12 @@ fn validate_change_output(
       check_dos_protection(outputPayment.value),
       outputAmountToTank >= starting - amountAway,
     }
+  }
+}
+
+fn validate_time(tx: Transaction, timeScheduled: Int) {
+  when tx.validity_range.lower_bound.bound_type is {
+    Finite(begin) -> begin > timeScheduled
+    _ -> False
   }
 }
