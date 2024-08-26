@@ -1,7 +1,9 @@
 use aiken/cbor
 use aiken/list.{length}
 use aiken/time.{PosixTime}
-use aiken/transaction.{Input, Output, ScriptContext, Spend, Transaction}
+use aiken/transaction.{
+  InlineDatum, Input, Output, ScriptContext, Spend, Transaction,
+}
 use aiken/transaction/credential.{Address, VerificationKeyCredential}
 use aiken/transaction/value.{AssetName, PolicyId, Value, flatten, quantity_of}
 use utils.{get_inputs_from_sc, get_own_hash}
@@ -27,7 +29,7 @@ type Redeemer {
   Consume { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
   ConsumeAll { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
   Withdraw
-  ScheduledTransaction
+  ScheduledTransaction { inputTankIndex: Int }
 }
 
 validator {
@@ -125,9 +127,19 @@ validator {
           }
 
           Withdraw -> must_be_signed_by(ctx.transaction, datum.tankOwner)
-
-          ScheduledTransaction -> {
-            expect Some(outputScheduled) = list.at(ctx.transaction.outputs, 0)
+          //Schedule mette come primo output il pagamento, come secondo eventualmente quello di ritorno alla tank
+          ScheduledTransaction(inputTankIndex) -> {
+            expect Some(outputScheduled) =
+              list.at(ctx.transaction.outputs, inputTankIndex)
+            expect Some(outputChange) =
+              list.at(ctx.transaction.outputs, inputTankIndex + 1)
+            expect Some(inputTank) =
+              list.at(
+                get_inputs_from_sc(ctx.transaction.inputs, ownScriptHash),
+                inputTankIndex,
+              )
+            let inputTankAmount = quantity_of(inputTank.output.value, "", "")
+            //add index validation
             let outputPaymentAmount =
               quantity_of(
                 outputScheduled.value,
@@ -135,6 +147,7 @@ validator {
                 datum.scheduledAmount.assetName,
               )
             and {
+              currentInput == inputTank.output_reference,
               validate_scheduled_output(
                 outputScheduled,
                 outputPaymentAmount,
@@ -142,11 +155,16 @@ validator {
                 datum.destionationaAddress,
               ),
               isWhitelisted(ctx.transaction, datum.whitelistedAddresses),
+              validate_change_output(
+                datum,
+                outputChange,
+                inputTankAmount,
+                datum.scheduledAmount.amount + datum.reward.amount,
+              ),
             }
           }
         }
-
-      //aggiungere controllo del resto eventuale, datum aggiornato e basta, inziamo a pensare siano entrambi ADA per semplicità
+      //verifica che sia davvero a quell'index l'input
       // Controlla se almeno uno è firmato
       _ -> False
     }
@@ -235,8 +253,44 @@ fn validate_scheduled_output(
   receiver: Address,
 ) {
   and {
-    scheduledAmount.amount / scheduledAmount.divider == outputPaymentAmount,
+    scheduledAmount.amount == outputPaymentAmount,
     outputPayment.address == receiver,
     check_dos_protection(outputPayment.value),
+  }
+}
+
+fn validate_change_output(
+  datum: Datum,
+  outputPayment: Output,
+  starting: Int,
+  amountAway: Int,
+) {
+  if amountAway == starting {
+    True
+  } else {
+    expect InlineDatum(output_datum) = outputPayment.datum
+    expect parsed_datum: Datum = output_datum
+
+    let newAmount =
+      CardanoToken { policyId: "", assetName: "", amount: 0, divider: 1000000 }
+
+    let newDatum =
+      Datum {
+        allowedTokens: datum.allowedTokens,
+        tankOwner: datum.tankOwner,
+        whitelistedAddresses: datum.whitelistedAddresses,
+        exectutionTime: datum.exectutionTime,
+        destionationaAddress: datum.tankOwner,
+        scheduledAmount: newAmount,
+        reward: newAmount,
+      }
+
+    let outputAmountToTank = quantity_of(outputPayment.value, "", "")
+
+    and {
+      parsed_datum == newDatum,
+      check_dos_protection(outputPayment.value),
+      outputAmountToTank >= starting - amountAway,
+    }
   }
 }
