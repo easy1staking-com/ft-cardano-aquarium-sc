@@ -7,6 +7,7 @@ use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
 
 pub type DatumParameters {
   min_to_stake: Int,
+  owner: ByteArray,
 }
 
 pub type Datum {
