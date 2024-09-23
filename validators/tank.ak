@@ -30,16 +30,13 @@ pub type Redeemer {
   ScheduledTransaction { inputTankIndex: Int, batcher: Address }
 }
 
-validator tank {
+validator tank(stakingContract: ByteArray) {
   spend(
     datum: Option<Datum>,
     redeemer: Redeemer,
     own_ref: OutputReference,
     self: Transaction,
   ) {
-    let stakingContract =
-      #"7f8266e7356894f15859edf668885af1e7ac35316e7e833cc6e7ff42"
-
     expect Some(input) =
       self.inputs
         |> transaction.find_input(own_ref)
@@ -209,8 +206,7 @@ fn validate_tank_output(
   receivers: Int,
 ) {
   let outputTankAmount = quantity_of(outputTank.value, "", "")
-  trace @"Ada going back into tank wrong or wrong datum or wrong address of tank"
-  trace cbor.diagnostic(outputTankAmount)
+
   and {
     check_dos_protection(outputTank.value),
     // verify that the output tank is equal than the input tank - fee (only ADA)
@@ -231,12 +227,6 @@ fn validate_payment_output(
   tankOwner: Address,
   receivers: Int,
 ) {
-  trace @"payment output wrong"
-  trace cbor.diagnostic(receivers)
-  trace cbor.diagnostic(feeAmount)
-  trace cbor.diagnostic(payingToken.amount / payingToken.divider)
-  trace cbor.diagnostic(outputPaymentAmount)
-
   and {
     ( feeAmount + 1500000 * receivers ) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
@@ -248,12 +238,10 @@ fn verify_paying_with_allowed_token(
   allowedTokens: List<CardanoToken>,
   payingToken: CardanoToken,
 ) {
-  trace @"token not allowed"
   list.has(allowedTokens, payingToken)
 }
 
 fn check_dos_protection(value: Value) {
-  trace @"dos protection"
   length(flatten(value)) <= 5
 }
 
@@ -263,7 +251,6 @@ fn must_be_signed_by(transaction: Transaction, address: Address) {
 }
 
 fn isWhitelisted(transaction: Transaction, whitelistedAddresses: List<Address>) {
-  trace @"whitelist wrong"
   if list.length(whitelistedAddresses) > 0 {
     list.any(
       whitelistedAddresses,

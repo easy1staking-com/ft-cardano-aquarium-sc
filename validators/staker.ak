@@ -3,7 +3,11 @@ use aiken/collection/list
 use aiken/crypto.{VerificationKeyHash}
 use cardano/address.{Address, Inline, Script, VerificationKey}
 use cardano/assets.{PolicyId, quantity_of, tokens}
-use cardano/transaction.{Input, OutputReference, Transaction}
+use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
+
+pub type DatumParameters {
+  min_to_stake: Int,
+}
 
 pub type Datum {
   owner: VerificationKeyHash,
@@ -22,7 +26,7 @@ pub type Redeemer {
 
 //Users that get airdrop for whatever reason can get it
 
-validator staker {
+validator staker(params_contract_hash: ByteArray) {
   spend(
     _datum: Option<Datum>,
     _redeemer: Redeemer,
@@ -47,10 +51,7 @@ validator staker {
                 quantity_of(input.output.value, contract, hash) == 0,
                 list.has(self.extra_signatories, hash),
               },
-              and {
-                quantity_of(self.mint, contract, hash) == -1 * inputs_from_contract,
-                list.has(self.extra_signatories, hash),
-              },
+              quantity_of(self.mint, contract, hash) == -1 * inputs_from_contract,
             }
           }
           _ -> False
@@ -60,9 +61,15 @@ validator staker {
 
   mint(redeemer: Redeemer, policy_id: PolicyId, tx: Transaction) {
     //if 1000 FLDT staked in the right address minta nello stesso output, il primo,redeeme signature inclusa
-    let fldt_policy = #""
-    let fldt_asset = #""
-    let fldt_min_amount = 1000
+    let fldt_policy =
+      #"577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e"
+    let fldt_asset = #"0014df10464c4454"
+
+    expect Some(referenceInput) = list.at(tx.reference_inputs, 0)
+    expect InlineDatum(datum) = referenceInput.output.datum
+    expect datum_params: DatumParameters = datum
+
+    let fldt_min_amount = datum_params.min_to_stake
 
     expect Some(stake_cred_signer) = redeemer.signer.stake_credential
     expect Inline(stake_key_hash) = stake_cred_signer
@@ -80,11 +87,10 @@ validator staker {
       //Se minted value <0,
       and {
         dict.size(tokens(tx.mint, policy_id)) == 1,
-        quantity_of(tx.mint, policy_id, hash) == -1,
+        quantity_of(tx.mint, policy_id, hash) < 0,
         list.has(tx.extra_signatories, hash),
       },
       and {
-        True,
         //First output goes to stake address correct
         output_staking.address == active_stake_address,
         //I must stake at least min amount
@@ -97,6 +103,11 @@ validator staker {
         quantity_of(tx.mint, policy_id, hash) == 1,
         //I am signing with staking hash
         list.has(tx.extra_signatories, hash),
+        quantity_of(
+          referenceInput.output.value,
+          params_contract_hash,
+          "parameters",
+        ) == 1,
       },
     }
   }
