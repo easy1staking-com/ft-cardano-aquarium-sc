@@ -51,7 +51,6 @@ validator parameters(tx0: ByteArray, index0: Int) {
     expect Some(_input_present) = find_input(tx.inputs, one_time_utxo)
 
     and {
-      True,
       //First output goes to stake address correct
       output_parameters.address.payment_credential == contractCredential,
       //only 1 token of same policy
