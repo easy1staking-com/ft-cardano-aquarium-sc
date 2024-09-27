@@ -11,7 +11,7 @@ pub type DatumParameters {
 }
 
 pub type Redeemer {
-  signer: Address,
+  random: Int,
 }
 
 //this contract allows to fluid project to update the parameters regarding min amount to stake
