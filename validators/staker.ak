@@ -27,7 +27,11 @@ pub type Redeemer {
 
 //Users that get airdrop for whatever reason can get it
 
-validator staker(params_contract_hash: ByteArray) {
+validator staker(
+  params_contract_hash: ByteArray,
+  fldt_policy: ByteArray,
+  fldt_asset: ByteArray,
+) {
   spend(
     _datum: Option<Datum>,
     _redeemer: Redeemer,
@@ -62,10 +66,6 @@ validator staker(params_contract_hash: ByteArray) {
 
   mint(redeemer: Redeemer, policy_id: PolicyId, tx: Transaction) {
     //if 1000 FLDT staked in the right address minta nello stesso output, il primo,redeeme signature inclusa
-    let fldt_policy =
-      #"577f0b1342f8f8f4aed3388b80a8535812950c7a892495c0ecdf0f1e"
-    let fldt_asset = #"0014df10464c4454"
-
     expect Some(referenceInput) = list.at(tx.reference_inputs, 0)
     expect InlineDatum(datum) = referenceInput.output.datum
     expect datum_params: DatumParameters = datum
