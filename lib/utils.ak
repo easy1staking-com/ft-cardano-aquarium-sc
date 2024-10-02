@@ -1,10 +1,10 @@
-use aiken/list
-use aiken/transaction.{Input, Output, ScriptPurpose, Spend}
-use aiken/transaction/credential.{ScriptCredential}
+use aiken/collection/list
+use cardano/transaction.{Input, Output, ScriptPurpose, Spend}
+use cardano/address.{Address, Script,}
 
 pub fn is_output_to_sc(output: Output, scHash: ByteArray) -> Bool {
   when output.address.payment_credential is {
-    ScriptCredential(hash) -> hash == scHash
+    Script(hash) -> hash == scHash
     _ -> False
   }
 }
@@ -28,7 +28,7 @@ pub fn get_own_hash(purpose: ScriptPurpose, txInputs: List<Input>) {
 
   expect Some(input) = list.head(inputList)
   when input.output.address.payment_credential is {
-    ScriptCredential(hash) -> hash
+    Script(hash) -> hash
     _ -> fail
   }
 }

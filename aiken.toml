@@ -1,16 +1,19 @@
-name = "fluidtokens/aquarium"
+name = "aiken-lang/aquariumv3"
 version = "0.0.0"
-compiler = "v1.0.28-alpha"
-plutus = "v2"
+compiler = "v1.1.2"
+plutus = "v3"
 license = "Apache-2.0"
-description = "Aiken contracts for project 'fluidtokens/aquarium'"
+description = "Aiken contracts for project 'aiken-lang/aquariumv3'"
 
 [repository]
-user = "fluidtokens"
-project = "aquarium"
+user = "aiken-lang"
+project = "aquariumv3"
 platform = "github"
 
 [[dependencies]]
 name = "aiken-lang/stdlib"
-version = "1.9.0"
+version = "v2.1.0"
 source = "github"
+
+[config]
+
