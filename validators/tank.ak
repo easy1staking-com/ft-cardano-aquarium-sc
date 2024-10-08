@@ -19,6 +19,9 @@ pub type DatumParameters {
   address_rewards: Address,
 }
 
+//Each utxo has it's datum and can be used as Babel Fee OR as scheduled tx
+//Each utxo can contain only 1 scheduled tx, meaning that multiple schedule txs are different utxos
+//we'll be adding some ADA more in the scheduled utxo to cover fees of the batcher
 pub type Datum {
   allowedTokens: List<CardanoToken>,
   tankOwner: Address,
@@ -153,9 +156,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
           //Schedule mette come primo output il pagamento, come secondo eventualmente quello di ritorno alla tank
           ScheduledTransaction(inputTankIndex, batcher) -> {
             expect Some(outputScheduled) = list.at(self.outputs, inputTankIndex)
-            expect Some(outputChange) =
-              list.at(self.outputs, inputTankIndex + 1)
-
             expect Some(inputTank) =
               list.at(
                 get_inputs_from_sc(self.inputs, ownScriptHash),
@@ -170,15 +170,15 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             expect datum_parsed: DatumParameters = datum_params
 
             let address_treasury = datum_parsed.address_rewards
+
             expect Some(outputRewards) =
-              list.at(self.outputs, inputTankIndex + 2)
-            let inputTankAmount =
+              list.at(self.outputs, inputTankIndex + 1)
+            let outputRewardAmount =
               quantity_of(
-                inputTank.output.value,
-                datum.scheduledAmount.policyId,
-                datum.scheduledAmount.assetName,
+                outputRewards.value,
+                datum.reward.policyId,
+                datum.reward.assetName,
               )
-            //add index validation
             let outputPaymentAmount =
               quantity_of(
                 outputScheduled.value,
@@ -189,6 +189,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             expect Some(stake_cred_signer) = batcher.stake_credential
             expect Inline(stake_key_hash) = stake_cred_signer
             expect VerificationKey(hash) = stake_key_hash
+
             and {
               own_ref == inputTank.output_reference,
               validate_scheduled_output(
@@ -197,16 +198,13 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 datum.scheduledAmount,
                 datum.destionationaAddress,
               ),
-              isWhitelisted(self, datum.whitelistedAddresses),
-              datum.scheduledAmount.policyId == datum.reward.policyId,
-              datum.scheduledAmount.assetName == datum.reward.assetName,
-              validate_change_output(
-                datum,
-                outputChange,
-                inputTankAmount,
-                datum.scheduledAmount.amount + datum.reward.amount,
-                self.fee,
+              validate_scheduled_output(
+                outputRewards,
+                outputRewardAmount,
+                datum.reward,
+                address_treasury,
               ),
+              isWhitelisted(self, datum.whitelistedAddresses),
               validate_time(self, datum.executionTime),
               list.has(self.extra_signatories, hash),
               referenceInput.output.address.stake_credential == batcher.stake_credential,
@@ -216,7 +214,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 params_contract_hash,
                 "parameters",
               ) == 1,
-              address_treasury == outputRewards.address,
             }
           }
         }
@@ -303,47 +300,6 @@ fn validate_scheduled_output(
     scheduledAmount.amount == outputPaymentAmount,
     outputPayment.address == receiver,
     check_dos_protection(outputPayment.value),
-  }
-}
-
-fn validate_change_output(
-  datum: Datum,
-  outputPayment: Output,
-  starting: Int,
-  amountAway: Int,
-  fee: Int,
-) {
-  if amountAway == starting {
-    True
-  } else {
-    expect InlineDatum(output_datum) = outputPayment.datum
-    expect parsed_datum: Datum = output_datum
-
-    let newAmount =
-      CardanoToken { policyId: "", assetName: "", amount: 0, divider: 1000000 }
-
-    let newDatum =
-      Datum {
-        allowedTokens: datum.allowedTokens,
-        tankOwner: datum.tankOwner,
-        whitelistedAddresses: datum.whitelistedAddresses,
-        executionTime: datum.executionTime,
-        destionationaAddress: datum.tankOwner,
-        scheduledAmount: newAmount,
-        reward: newAmount,
-      }
-
-    let outputAmountToTank =
-      quantity_of(
-        outputPayment.value,
-        datum.scheduledAmount.policyId,
-        datum.reward.policyId,
-      )
-    and {
-      parsed_datum == newDatum,
-      check_dos_protection(outputPayment.value),
-      outputAmountToTank >= starting - amountAway - fee,
-    }
   }
 }
 
