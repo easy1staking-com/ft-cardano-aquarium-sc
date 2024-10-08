@@ -13,6 +13,12 @@ pub type CardanoToken {
   divider: Int,
 }
 
+pub type DatumParameters {
+  min_to_stake: Int,
+  owner: ByteArray,
+  address_rewards: Address,
+}
+
 pub type Datum {
   allowedTokens: List<CardanoToken>,
   tankOwner: Address,
@@ -30,7 +36,7 @@ pub type Redeemer {
   ScheduledTransaction { inputTankIndex: Int, batcher: Address }
 }
 
-validator tank(stakingContract: ByteArray) {
+validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
   spend(
     datum: Option<Datum>,
     redeemer: Redeemer,
@@ -149,6 +155,7 @@ validator tank(stakingContract: ByteArray) {
             expect Some(outputScheduled) = list.at(self.outputs, inputTankIndex)
             expect Some(outputChange) =
               list.at(self.outputs, inputTankIndex + 1)
+
             expect Some(inputTank) =
               list.at(
                 get_inputs_from_sc(self.inputs, ownScriptHash),
@@ -156,7 +163,21 @@ validator tank(stakingContract: ByteArray) {
               )
 
             expect Some(referenceInput) = list.at(self.reference_inputs, 0)
-            let inputTankAmount = quantity_of(inputTank.output.value, "", "")
+            expect Some(referenceInputParams) =
+              list.at(self.reference_inputs, 1)
+
+            expect InlineDatum(datum_params) = referenceInputParams.output.datum
+            expect datum_parsed: DatumParameters = datum_params
+
+            let address_treasury = datum_parsed.address_rewards
+            expect Some(outputRewards) =
+              list.at(self.outputs, inputTankIndex + 2)
+            let inputTankAmount =
+              quantity_of(
+                inputTank.output.value,
+                datum.scheduledAmount.policyId,
+                datum.scheduledAmount.assetName,
+              )
             //add index validation
             let outputPaymentAmount =
               quantity_of(
@@ -177,16 +198,25 @@ validator tank(stakingContract: ByteArray) {
                 datum.destionationaAddress,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
+              datum.scheduledAmount.policyId == datum.reward.policyId,
+              datum.scheduledAmount.assetName == datum.reward.assetName,
               validate_change_output(
                 datum,
                 outputChange,
                 inputTankAmount,
                 datum.scheduledAmount.amount + datum.reward.amount,
+                self.fee,
               ),
               validate_time(self, datum.executionTime),
               list.has(self.extra_signatories, hash),
               referenceInput.output.address.stake_credential == batcher.stake_credential,
               quantity_of(referenceInput.output.value, stakingContract, hash) == 1,
+              quantity_of(
+                referenceInputParams.output.value,
+                params_contract_hash,
+                "parameters",
+              ) == 1,
+              address_treasury == outputRewards.address,
             }
           }
         }
@@ -281,6 +311,7 @@ fn validate_change_output(
   outputPayment: Output,
   starting: Int,
   amountAway: Int,
+  fee: Int,
 ) {
   if amountAway == starting {
     True
@@ -302,12 +333,16 @@ fn validate_change_output(
         reward: newAmount,
       }
 
-    let outputAmountToTank = quantity_of(outputPayment.value, "", "")
-
+    let outputAmountToTank =
+      quantity_of(
+        outputPayment.value,
+        datum.scheduledAmount.policyId,
+        datum.reward.policyId,
+      )
     and {
       parsed_datum == newDatum,
       check_dos_protection(outputPayment.value),
-      outputAmountToTank >= starting - amountAway,
+      outputAmountToTank >= starting - amountAway - fee,
     }
   }
 }

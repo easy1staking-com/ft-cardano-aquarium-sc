@@ -8,6 +8,7 @@ use cardano/transaction.{InlineDatum, OutputReference, Transaction, find_input}
 pub type DatumParameters {
   min_to_stake: Int,
   owner: ByteArray,
+  address_rewards: Address,
 }
 
 pub type Redeemer {
