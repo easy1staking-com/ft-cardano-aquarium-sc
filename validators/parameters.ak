@@ -31,7 +31,7 @@ validator parameters(tx0: ByteArray, index0: Int) {
     expect Some(output_contract) = list.at(tx.outputs, 0)
     expect InlineDatum(datum) = output_contract.datum
     //value can be anything but the type must be Datum Parameters
-    expect _datum_params: DatumParameters = datum
+    expect datum_params: DatumParameters = datum
 
     expect Script(contract) = input_contract.output.address.payment_credential
 
@@ -40,6 +40,7 @@ validator parameters(tx0: ByteArray, index0: Int) {
       input_contract.output.address == output_contract.address,
       list.has(tx.extra_signatories, owner),
       quantity_of(input_contract.output.value, contract, "parameters") == 1,
+      datum_params.min_to_stake > 0,
     }
   }
 

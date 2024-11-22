@@ -1,17 +1,15 @@
 use aiken/collection/list.{length}
 use aiken/interval.{Finite}
+use aiken/math/rational.{from_int}
+use aiken/option.{is_none}
 use cardano/address.{Address, Inline, Script, VerificationKey}
-use cardano/assets.{AssetName, PolicyId, Value, flatten, quantity_of}
+use cardano/assets.{Value, flatten, quantity_of}
 use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction,
 }
-
-pub type CardanoToken {
-  policyId: PolicyId,
-  assetName: AssetName,
-  amount: Int,
-  divider: Int,
-}
+use types/general.{CardanoToken}
+use types/redeemer.{Aggregated, Dedicated, OraclePriceFeed, Pooled}
+use utils.{retrieve_oracle_data, validate_oracle_ref_input}
 
 pub type DatumParameters {
   min_to_stake: Int,
@@ -36,7 +34,24 @@ pub type Redeemer {
   Consume { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
   ConsumeAll { payingToken: CardanoToken, inputTankIndex: Int, receivers: Int }
   Withdraw
-  ScheduledTransaction { inputTankIndex: Int, batcher: Address }
+  ScheduledTransaction {
+    inputTankIndex: Int,
+    batcher: Address,
+    reference_staking_index: Int,
+    reference_params_index: Int,
+  }
+  ConsumeOracle {
+    payingToken: CardanoToken,
+    inputTankIndex: Int,
+    receivers: Int,
+    oracleIndex: Int,
+  }
+  ConsumeAllOracle {
+    payingToken: CardanoToken,
+    inputTankIndex: Int,
+    receivers: Int,
+    oracleIndex: Int,
+  }
 }
 
 validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
@@ -109,6 +124,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 receivers,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
+              is_none(payingToken.oracle),
             }
           }
 
@@ -149,12 +165,18 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 receivers,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
+              is_none(payingToken.oracle),
             }
           }
 
           Withdraw -> must_be_signed_by(self, datum.tankOwner)
           //Schedule mette come primo output il pagamento, come secondo eventualmente quello di ritorno alla tank
-          ScheduledTransaction(inputTankIndex, batcher) -> {
+          ScheduledTransaction(
+            inputTankIndex,
+            batcher,
+            reference_staking_index,
+            reference_params_index,
+          ) -> {
             expect Some(outputScheduled) = list.at(self.outputs, inputTankIndex)
             expect Some(inputTank) =
               list.at(
@@ -162,9 +184,10 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 inputTankIndex,
               )
 
-            expect Some(referenceInput) = list.at(self.reference_inputs, 0)
+            expect Some(referenceInput) =
+              list.at(self.reference_inputs, reference_staking_index)
             expect Some(referenceInputParams) =
-              list.at(self.reference_inputs, 1)
+              list.at(self.reference_inputs, reference_params_index)
 
             expect InlineDatum(datum_params) = referenceInputParams.output.datum
             expect datum_parsed: DatumParameters = datum_params
@@ -186,10 +209,8 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 datum.scheduledAmount.assetName,
               )
 
-            expect Some(stake_cred_signer) = batcher.stake_credential
-            expect Inline(stake_key_hash) = stake_cred_signer
-            expect VerificationKey(hash) = stake_key_hash
-
+            expect Some(Inline(VerificationKey(hash))) =
+              batcher.stake_credential
             and {
               own_ref == inputTank.output_reference,
               validate_scheduled_output(
@@ -216,6 +237,69 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               ) == 1,
             }
           }
+          ConsumeOracle(payingToken, inputTankIndex, receivers, oracleIndex) -> {
+            expect Some(oracleRefInput) =
+              list.at(self.reference_inputs, oracleIndex)
+            expect
+              validate_oracle_ref_input(
+                oracleRefInput.output.value,
+                payingToken,
+              ) == True
+
+            expect Some(inputTank) =
+              list.at(
+                get_inputs_from_sc(self.inputs, ownScriptHash),
+                inputTankIndex,
+              )
+            let inputTankAsOutput = inputTank.output
+
+            expect Some(outputTank) = list.at(self.outputs, inputTankIndex)
+            expect Some(outputPayment) =
+              list.at(self.outputs, inputTankIndex + 1)
+
+            // calculate fee of transaction (ADA)
+            let feeAmount = self.fee
+
+            let outputPaymentAmount =
+              quantity_of(
+                outputPayment.value,
+                payingToken.policyId,
+                payingToken.assetName,
+              )
+
+            let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
+            expect Finite(end) = self.validity_range.upper_bound.bound_type
+            expect Some(oraclePriceFeed) =
+              retrieve_oracle_data(
+                oracleRefInput,
+                self.redeemers,
+                end,
+                payingToken,
+              )
+
+            and {
+              own_ref == inputTank.output_reference,
+              verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
+              validate_tank_output(
+                inputTank,
+                outputTank,
+                inputTankAmount,
+                feeAmount,
+                receivers,
+              ),
+              validate_payment_output_oracle(
+                outputPayment,
+                outputPaymentAmount,
+                feeAmount,
+                payingToken,
+                datum.tankOwner,
+                receivers,
+                oraclePriceFeed,
+              ),
+              isWhitelisted(self, datum.whitelistedAddresses),
+            }
+          }
+          _ -> False
         }
     }
   }
@@ -258,6 +342,58 @@ fn validate_payment_output(
     ( feeAmount + 1500000 * receivers ) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
     check_dos_protection(outputPayment.value),
+  }
+}
+
+fn validate_payment_output_oracle(
+  outputPayment: Output,
+  outputPaymentAmount: Int,
+  feeAmount: Int,
+  _payingToken: CardanoToken,
+  tankOwner: Address,
+  receivers: Int,
+  oraclePriceFeed: OraclePriceFeed,
+) {
+  when oraclePriceFeed is {
+    Aggregated(aggregated_data) -> {
+      expect Some(tokenPrice) =
+        rational.new(
+          aggregated_data.token_price_in_lovelaces,
+          aggregated_data.denominator,
+        )
+      //This price is in lovelace
+      expect Some(minTokenPayment) =
+        rational.div(from_int(feeAmount + 1500000 * receivers), tokenPrice)
+      and {
+        rational.ceil(minTokenPayment) <= outputPaymentAmount,
+        outputPayment.address == tankOwner,
+        check_dos_protection(outputPayment.value),
+      }
+    }
+    Pooled(pooled_data) -> {
+      //Is this correct? tokenA is the liquidity pair and tokenB is the token itself
+      expect Some(tokenPrice) =
+        rational.new(pooled_data.token_a_amount, pooled_data.token_b_amount)
+      expect Some(minTokenPayment) =
+        rational.div(from_int(feeAmount + 1500000 * receivers), tokenPrice)
+      and {
+        rational.ceil(minTokenPayment) <= outputPaymentAmount,
+        outputPayment.address == tankOwner,
+        check_dos_protection(outputPayment.value),
+      }
+    }
+    Dedicated(dedicated_data) -> {
+      expect Some(tokenPrice) =
+        rational.new(dedicated_data.token_price, dedicated_data.denominator)
+      //This should work only if this oracle is providing lovelace price
+      expect Some(minTokenPayment) =
+        rational.div(from_int(feeAmount + 1500000 * receivers), tokenPrice)
+      and {
+        rational.ceil(minTokenPayment) <= outputPaymentAmount,
+        outputPayment.address == tankOwner,
+        check_dos_protection(outputPayment.value),
+      }
+    }
   }
 }
 

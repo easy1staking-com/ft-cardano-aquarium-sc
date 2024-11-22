@@ -1,6 +1,13 @@
 use aiken/collection/list
-use cardano/transaction.{Input, Output, ScriptPurpose, Spend}
-use cardano/address.{Address, Script,}
+use aiken/collection/pairs
+use cardano/address.{Address, Script}
+use cardano/assets.{Value, quantity_of}
+use cardano/transaction.{Input,
+  Output, Redeemer, ScriptPurpose, Spend, Withdraw}
+use types/general.{Asset, CardanoToken}
+use types/redeemer.{
+  Aggregated, Dedicated, OraclePriceFeed, OracleRedeemer, Pooled,
+}
 
 pub fn is_output_to_sc(output: Output, scHash: ByteArray) -> Bool {
   when output.address.payment_credential is {
@@ -30,5 +37,70 @@ pub fn get_own_hash(purpose: ScriptPurpose, txInputs: List<Input>) {
   when input.output.address.payment_credential is {
     Script(hash) -> hash
     _ -> fail
+  }
+}
+
+pub fn validate_oracle_ref_input(
+  oracleInputValue: Value,
+  chosenCollateral: CardanoToken,
+) {
+  expect Some(oracleToken) = chosenCollateral.oracle
+  quantity_of(oracleInputValue, oracleToken.policyId, oracleToken.assetName) > 0
+}
+
+pub fn is_feed_token_correct(
+  expectedPaymentToken: CardanoToken,
+  feedToken: Asset,
+) {
+  and {
+    feedToken.policyId == expectedPaymentToken.policyId,
+    feedToken.assetName == expectedPaymentToken.assetName,
+  }
+}
+
+pub fn retrieve_oracle_data(
+  oracleInput: Input,
+  redeemers: Pairs<ScriptPurpose, Redeemer>,
+  transaction_valid_to: Int,
+  expectedPaymentToken: CardanoToken,
+) -> Option<OraclePriceFeed> {
+  expect Some(loan_oracle_redeemer) =
+    pairs.get_first(
+      redeemers,
+      Withdraw(oracleInput.output.address.payment_credential),
+    )
+  expect loan_tokens_price: OracleRedeemer = loan_oracle_redeemer
+
+  when loan_tokens_price.data is {
+    Pooled(data) ->
+      if and {
+        data.valid_to >= transaction_valid_to,
+        is_feed_token_correct(expectedPaymentToken, data.token),
+      } {
+        Some(Pooled(data))
+      } else {
+        trace @"oracle is expired or has wrong token"
+        None
+      }
+    Aggregated(data) ->
+      if and {
+        data.valid_to >= transaction_valid_to,
+        is_feed_token_correct(expectedPaymentToken, data.token),
+      } {
+        Some(Aggregated(data))
+      } else {
+        trace @"oracle is expired or has wrong token"
+        None
+      }
+    Dedicated(data) ->
+      if and {
+        data.valid_to >= transaction_valid_to,
+        is_feed_token_correct(expectedPaymentToken, data.token),
+      } {
+        Some(Dedicated(data))
+      } else {
+        trace @"oracle is expired or has wrong token"
+        None
+      }
   }
 }
