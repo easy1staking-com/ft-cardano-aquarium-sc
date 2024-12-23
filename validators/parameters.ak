@@ -9,6 +9,7 @@ pub type DatumParameters {
   min_to_stake: Int,
   owner: ByteArray,
   address_rewards: Address,
+  min_ada: Int,
 }
 
 pub type Redeemer {
