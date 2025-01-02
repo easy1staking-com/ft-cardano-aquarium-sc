@@ -139,6 +139,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 inputTankAmount,
                 feeAmount,
                 receivers,
+                min_ada,
               ),
               validate_payment_output(
                 outputPayment,
@@ -349,6 +350,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 inputTankAmount,
                 feeAmount,
                 receivers,
+                min_ada,
               ),
               validate_payment_output_oracle(
                 outputPayment,
@@ -426,6 +428,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 inputTankAmount,
                 feeAmount,
                 receivers,
+                min_ada,
               ),
               validate_payment_output_oracle(
                 outputPayment,
@@ -455,13 +458,14 @@ fn validate_tank_output(
   inputTankAmount: Int,
   feeAmount: Int,
   receivers: Int,
+  min_ada: Int,
 ) {
   let outputTankAmount = quantity_of(outputTank.value, "", "")
 
   and {
     check_dos_protection(outputTank.value),
     // verify that the output tank is equal than the input tank - fee (only ADA)
-    outputTankAmount >= inputTankAmount - feeAmount - 1500000 * (
+    outputTankAmount >= inputTankAmount - feeAmount - min_ada * (
       receivers + 1
     ),
     // verify that the input tank datum is equal to the output tank datum
