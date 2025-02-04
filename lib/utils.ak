@@ -4,6 +4,7 @@ use cardano/address.{Address, Script}
 use cardano/assets.{Value, quantity_of}
 use cardano/transaction.{Input,
   Output, Redeemer, ScriptPurpose, Spend, Withdraw}
+use constants
 use types/general.{Asset, CardanoToken}
 use types/redeemer.{
   Aggregated, Dedicated, OraclePriceFeed, OracleRedeemer, Pooled,
@@ -79,7 +80,7 @@ pub fn retrieve_oracle_data(
     }
 
   if and {
-    commonFeedData.valid_to - commonFeedData.valid_from <= 3600000,
+    commonFeedData.valid_to - commonFeedData.valid_from <= constants.max_oracle_validity_range,
     commonFeedData.valid_to >= transaction_valid_to,
     is_feed_token_correct(expectedPaymentToken, commonFeedData.token),
   } {

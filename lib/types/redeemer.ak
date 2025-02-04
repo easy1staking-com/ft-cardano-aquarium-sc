@@ -1,4 +1,5 @@
-use types/general.{Asset}
+use cardano/address.{Address}
+use types/general.{Asset, CardanoToken}
 
 pub type CommonFeedData {
   valid_from: Int,
@@ -18,8 +19,7 @@ pub type OraclePriceFeed {
   //Complex vaults can have a dedicated oracle that calculates the value of all collateral assets in a custom currency
   Dedicated {
     common: CommonFeedData,
-    token_price_currency: Asset,
-    token_price: Int,
+    price_in_lovelaces: Int,
     denominator: Int,
   }
 }
@@ -32,4 +32,46 @@ pub type Signature {
 pub type OracleRedeemer {
   data: OraclePriceFeed,
   signatures: List<Signature>,
+}
+
+pub type RedeemerStaker {
+  signer: Address,
+  reference_index: Int,
+  output_staking: Int,
+}
+
+pub type RedeemerTank {
+  Consume {
+    payingToken: CardanoToken,
+    inputTankIndex: Int,
+    receivers: Int,
+    reference_params_index: Int,
+  }
+  ConsumeAll {
+    payingToken: CardanoToken,
+    inputTankIndex: Int,
+    receivers: Int,
+    reference_params_index: Int,
+  }
+  Withdraw
+  ScheduledTransaction {
+    inputTankIndex: Int,
+    batcher: Address,
+    reference_staking_index: Int,
+    reference_params_index: Int,
+  }
+  ConsumeOracle {
+    payingToken: CardanoToken,
+    inputTankIndex: Int,
+    receivers: Int,
+    oracleIndex: Int,
+    reference_params_index: Int,
+  }
+  ConsumeAllOracle {
+    payingToken: CardanoToken,
+    inputTankIndex: Int,
+    receivers: Int,
+    oracleIndex: Int,
+    reference_params_index: Int,
+  }
 }

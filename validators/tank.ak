@@ -7,70 +7,18 @@ use cardano/assets.{Value, flatten, quantity_of}
 use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction,
 }
+use types/datum.{DatumParameters, DatumTank}
 use types/general.{CardanoToken}
-use types/redeemer.{Aggregated, Dedicated, OraclePriceFeed, Pooled}
+use types/redeemer.{
+  Aggregated, Consume, ConsumeAll, ConsumeAllOracle, ConsumeOracle, Dedicated,
+  OraclePriceFeed, Pooled, RedeemerTank, ScheduledTransaction, Withdraw,
+}
 use utils.{retrieve_oracle_data, validate_oracle_ref_input}
-
-pub type DatumParameters {
-  min_to_stake: Int,
-  owner: ByteArray,
-  address_rewards: Address,
-  min_ada: Int,
-}
-
-//Each utxo has it's datum and can be used as Babel Fee OR as scheduled tx
-//Each utxo can contain only 1 scheduled tx, meaning that multiple schedule txs are different utxos
-//we'll be adding some ADA more in the scheduled utxo to cover fees of the batcher
-pub type Datum {
-  allowedTokens: List<CardanoToken>,
-  tankOwner: Address,
-  whitelistedAddresses: List<Address>,
-  executionTime: Int,
-  destionationaAddress: Address,
-  scheduledAmount: CardanoToken,
-  reward: CardanoToken,
-}
-
-pub type Redeemer {
-  Consume {
-    payingToken: CardanoToken,
-    inputTankIndex: Int,
-    receivers: Int,
-    reference_params_index: Int,
-  }
-  ConsumeAll {
-    payingToken: CardanoToken,
-    inputTankIndex: Int,
-    receivers: Int,
-    reference_params_index: Int,
-  }
-  Withdraw
-  ScheduledTransaction {
-    inputTankIndex: Int,
-    batcher: Address,
-    reference_staking_index: Int,
-    reference_params_index: Int,
-  }
-  ConsumeOracle {
-    payingToken: CardanoToken,
-    inputTankIndex: Int,
-    receivers: Int,
-    oracleIndex: Int,
-    reference_params_index: Int,
-  }
-  ConsumeAllOracle {
-    payingToken: CardanoToken,
-    inputTankIndex: Int,
-    receivers: Int,
-    oracleIndex: Int,
-    reference_params_index: Int,
-  }
-}
 
 validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
   spend(
-    datum: Option<Datum>,
-    redeemer: Redeemer,
+    datum: Option<DatumTank>,
+    redeemer: RedeemerTank,
     own_ref: OutputReference,
     self: Transaction,
   ) {
@@ -525,7 +473,7 @@ fn validate_payment_output_oracle(
         check_dos_protection(outputPayment.value),
       }
     }
-    Dedicated(_, _, token_price, denominator) -> {
+    Dedicated(_, token_price, denominator) -> {
       expect Some(tokenPrice) = rational.new(token_price, denominator)
       //This should work only if this oracle is providing lovelace price
       expect Some(minTokenPayment) =

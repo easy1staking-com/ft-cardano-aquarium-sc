@@ -1,16 +1,17 @@
 use aiken/builtin
 use aiken/collection/list
+use authorizer
 use cardano/address.{Credential}
 use cardano/transaction.{OutputReference, Transaction}
-use nft_pointers
-use types/general.{Asset}
 use types/redeemer.{OracleRedeemer}
 
 validator oracle(
   verification_keys: List<ByteArray>,
   threshold: Int,
-  _oracle_asset: Asset,
-  governance_token: Asset,
+  _oracle_asset_policy_id: ByteArray,
+  _oracle_asset_asset_name: ByteArray,
+  governance_token_policy_id: ByteArray,
+  governance_token_asset_name: ByteArray,
 ) {
   // Allow to move Oracle NFT if governance have signed off.
   spend(
@@ -20,16 +21,16 @@ validator oracle(
     self: Transaction,
   ) {
     // Governance approval (transaction signed by governance NFT holder)
-    nft_pointers.nft_validator(
-      governance_token.policyId,
-      governance_token.assetName,
+    authorizer.authorize_via_nft_ownership(
+      governance_token_policy_id,
+      governance_token_asset_name,
       self.reference_inputs,
       self.withdrawals,
       self.extra_signatories,
     )
   }
 
-  // Validate that n/m oracles have signed on this TX
+  //Validate that n/m oracles have signed on this TX
   withdraw(
     redeemer: OracleRedeemer,
     _credential: Credential,

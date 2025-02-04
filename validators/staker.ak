@@ -1,26 +1,11 @@
 use aiken/collection/dict
 use aiken/collection/list
-use aiken/crypto.{VerificationKeyHash}
 use cardano/address.{Address, Inline, Script, VerificationKey}
 use cardano/assets.{PolicyId, quantity_of, tokens}
 use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
-
-pub type DatumParameters {
-  min_to_stake: Int,
-  owner: ByteArray,
-  address_rewards: Address,
-  min_ada: Int,
-}
-
-pub type Datum {
-  owner: VerificationKeyHash,
-}
-
-pub type Redeemer {
-  signer: Address,
-  reference_index: Int,
-  output_staking: Int,
-}
+use constants
+use types/datum.{DatumParameters, DatumStaker}
+use types/redeemer.{RedeemerStaker}
 
 //the process is simple, every user can mint an NFT, I can stake multiple times but no advantage
 //to unstake I need to burn the NFT, I can unstake multiple times
@@ -37,8 +22,8 @@ validator staker(
   fldt_asset: ByteArray,
 ) {
   spend(
-    _datum: Option<Datum>,
-    _redeemer: Redeemer,
+    _datum: Option<DatumStaker>,
+    _redeemer: RedeemerStaker,
     own_ref: OutputReference,
     self: Transaction,
   ) {
@@ -66,7 +51,7 @@ validator staker(
     }
   }
 
-  mint(redeemer: Redeemer, policy_id: PolicyId, tx: Transaction) {
+  mint(redeemer: RedeemerStaker, policy_id: PolicyId, tx: Transaction) {
     //if 1000 FLDT staked in the right address minta nello stesso output, il primo,redeeme signature inclusa
     expect Some(referenceInput) =
       list.at(tx.reference_inputs, redeemer.reference_index)
@@ -113,7 +98,7 @@ validator staker(
         quantity_of(
           referenceInput.output.value,
           params_contract_hash,
-          "parameters",
+          constants.config_asset_name,
         ) == 1,
       },
     }
