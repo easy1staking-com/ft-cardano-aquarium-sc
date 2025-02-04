@@ -1,23 +1,11 @@
 use aiken/collection/dict
 use aiken/collection/list
-use aiken/crypto.{VerificationKeyHash}
 use cardano/address.{Address, Inline, Script, VerificationKey}
 use cardano/assets.{PolicyId, quantity_of, tokens}
 use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
-
-pub type DatumParameters {
-  min_to_stake: Int,
-  owner: ByteArray,
-  address_rewards: Address,
-}
-
-pub type Datum {
-  owner: VerificationKeyHash,
-}
-
-pub type Redeemer {
-  signer: Address,
-}
+use constants
+use types/datum.{DatumParameters, DatumStaker}
+use types/redeemer.{RedeemerStaker}
 
 //the process is simple, every user can mint an NFT, I can stake multiple times but no advantage
 //to unstake I need to burn the NFT, I can unstake multiple times
@@ -34,8 +22,8 @@ validator staker(
   fldt_asset: ByteArray,
 ) {
   spend(
-    _datum: Option<Datum>,
-    _redeemer: Redeemer,
+    _datum: Option<DatumStaker>,
+    _redeemer: RedeemerStaker,
     own_ref: OutputReference,
     self: Transaction,
   ) {
@@ -44,8 +32,6 @@ validator staker(
         |> transaction.find_input(own_ref)
 
     expect Script(contract) = input.output.address.payment_credential
-
-    let inputs_from_contract = count_inputs(self.inputs, input)
     when input.output.address.stake_credential is {
       None -> False
       Some(stake_cred) ->
@@ -57,7 +43,7 @@ validator staker(
                 quantity_of(input.output.value, contract, hash) == 0,
                 list.has(self.extra_signatories, hash),
               },
-              quantity_of(self.mint, contract, hash) == -1 * inputs_from_contract,
+              quantity_of(self.mint, contract, hash) < 0,
             }
           }
           _ -> False
@@ -65,9 +51,10 @@ validator staker(
     }
   }
 
-  mint(redeemer: Redeemer, policy_id: PolicyId, tx: Transaction) {
+  mint(redeemer: RedeemerStaker, policy_id: PolicyId, tx: Transaction) {
     //if 1000 FLDT staked in the right address minta nello stesso output, il primo,redeeme signature inclusa
-    expect Some(referenceInput) = list.at(tx.reference_inputs, 0)
+    expect Some(referenceInput) =
+      list.at(tx.reference_inputs, redeemer.reference_index)
     expect InlineDatum(datum) = referenceInput.output.datum
     expect datum_params: DatumParameters = datum
 
@@ -77,7 +64,7 @@ validator staker(
     expect Inline(stake_key_hash) = stake_cred_signer
     expect VerificationKey(hash) = stake_key_hash
 
-    expect Some(output_staking) = list.at(tx.outputs, 0)
+    expect Some(output_staking) = list.at(tx.outputs, redeemer.output_staking)
     let contractCredential = Script(policy_id)
 
     let active_stake_address: Address =
@@ -85,11 +72,14 @@ validator staker(
         payment_credential: contractCredential,
         stake_credential: redeemer.signer.stake_credential,
       }
+
+    let inputs_from_contract = count_inputs(tx.inputs, policy_id)
+
     or {
       //Se minted value <0,
       and {
         dict.size(tokens(tx.mint, policy_id)) == 1,
-        quantity_of(tx.mint, policy_id, hash) < 0,
+        quantity_of(tx.mint, policy_id, hash) < -1 * inputs_from_contract,
         list.has(tx.extra_signatories, hash),
       },
       and {
@@ -108,7 +98,7 @@ validator staker(
         quantity_of(
           referenceInput.output.value,
           params_contract_hash,
-          "parameters",
+          constants.config_asset_name,
         ) == 1,
       },
     }
@@ -119,12 +109,12 @@ validator staker(
   }
 }
 
-fn count_inputs(inputs: List<Input>, input: Input) {
+fn count_inputs(inputs: List<Input>, policy: ByteArray) {
   list.foldl(
     inputs,
     0,
     fn(n, total) {
-      if n.output.address == input.output.address {
+      if n.output.address.payment_credential == VerificationKey(policy) {
         total + 1
       } else {
         total

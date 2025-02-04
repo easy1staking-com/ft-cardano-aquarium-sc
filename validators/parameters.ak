@@ -3,17 +3,8 @@ use aiken/collection/list
 use cardano/address.{Address, Script}
 use cardano/assets.{PolicyId, quantity_of, tokens}
 use cardano/transaction.{InlineDatum, OutputReference, Transaction, find_input}
-
-//the owner can change over time and only the current owner can change the datum
-pub type DatumParameters {
-  min_to_stake: Int,
-  owner: ByteArray,
-  address_rewards: Address,
-}
-
-pub type Redeemer {
-  random: Int,
-}
+use constants
+use types/datum.{DatumParameters}
 
 //this contract allows to fluid project to update the parameters regarding min amount to stake
 //the contract is parametric and can mint only once
@@ -21,7 +12,7 @@ pub type Redeemer {
 validator parameters(tx0: ByteArray, index0: Int) {
   spend(
     datum: Option<DatumParameters>,
-    _redeemer: Redeemer,
+    _redeemer: Data,
     own_ref: OutputReference,
     tx: Transaction,
   ) {
@@ -31,7 +22,7 @@ validator parameters(tx0: ByteArray, index0: Int) {
     expect Some(output_contract) = list.at(tx.outputs, 0)
     expect InlineDatum(datum) = output_contract.datum
     //value can be anything but the type must be Datum Parameters
-    expect _datum_params: DatumParameters = datum
+    expect datum_params: DatumParameters = datum
 
     expect Script(contract) = input_contract.output.address.payment_credential
 
@@ -39,11 +30,16 @@ validator parameters(tx0: ByteArray, index0: Int) {
       input_contract.output.value == output_contract.value,
       input_contract.output.address == output_contract.address,
       list.has(tx.extra_signatories, owner),
-      quantity_of(input_contract.output.value, contract, "parameters") == 1,
+      quantity_of(
+        input_contract.output.value,
+        contract,
+        constants.config_asset_name,
+      ) == 1,
+      datum_params.min_to_stake > 0,
     }
   }
 
-  mint(_redeemer: Redeemer, policy_id: PolicyId, tx: Transaction) {
+  mint(_redeemer: Data, policy_id: PolicyId, tx: Transaction) {
     expect Some(output_parameters) = list.at(tx.outputs, 0)
     let contractCredential = Script(policy_id)
 
@@ -57,9 +53,13 @@ validator parameters(tx0: ByteArray, index0: Int) {
       //only 1 token of same policy
       dict.size(tokens(tx.mint, policy_id)) == 1,
       //I must send the NFT I send, each user has different NFT assetname 
-      quantity_of(output_parameters.value, policy_id, "parameters") == 1,
+      quantity_of(
+        output_parameters.value,
+        policy_id,
+        constants.config_asset_name,
+      ) == 1,
       //I am minting only 1 NFT
-      quantity_of(tx.mint, policy_id, "parameters") == 1,
+      quantity_of(tx.mint, policy_id, constants.config_asset_name) == 1,
     }
   }
 
