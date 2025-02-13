@@ -4,7 +4,7 @@ use cardano/address.{Address, Inline, Script, VerificationKey}
 use cardano/assets.{PolicyId, quantity_of, tokens}
 use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
 use constants
-use types/datum.{DatumParameters, DatumStaker}
+use types/datum.{DatumParameters}
 use types/redeemer.{RedeemerStaker}
 
 //the process is simple, every user can mint an NFT, I can stake multiple times but no advantage
@@ -22,7 +22,7 @@ validator staker(
   fldt_asset: ByteArray,
 ) {
   spend(
-    _datum: Option<DatumStaker>,
+    _datum: Option<Data>,
     _redeemer: RedeemerStaker,
     own_ref: OutputReference,
     self: Transaction,
