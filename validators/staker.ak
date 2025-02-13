@@ -43,7 +43,10 @@ validator staker(
                 quantity_of(input.output.value, contract, hash) == 0,
                 list.has(self.extra_signatories, hash),
               },
-              quantity_of(self.mint, contract, hash) < 0,
+              and {
+                list.has(self.extra_signatories, hash),
+                quantity_of(self.mint, contract, hash) < 0,
+              },
             }
           }
           _ -> False
