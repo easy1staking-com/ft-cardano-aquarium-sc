@@ -244,7 +244,7 @@
       "datum": {
         "title": "_datum",
         "schema": {
-          "$ref": "#/definitions/types~1datum~1DatumStaker"
+          "$ref": "#/definitions/Data"
         }
       },
       "redeemer": {
@@ -617,22 +617,6 @@
             {
               "title": "min_ada",
               "$ref": "#/definitions/Int"
-            }
-          ]
-        }
-      ]
-    },
-    "types/datum/DatumStaker": {
-      "title": "DatumStaker",
-      "anyOf": [
-        {
-          "title": "DatumStaker",
-          "dataType": "constructor",
-          "index": 0,
-          "fields": [
-            {
-              "title": "owner",
-              "$ref": "#/definitions/VerificationKeyHash"
             }
           ]
         }
