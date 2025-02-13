@@ -82,7 +82,7 @@ validator staker(
       //Se minted value <0,
       and {
         dict.size(tokens(tx.mint, policy_id)) == 1,
-        quantity_of(tx.mint, policy_id, hash) < -1 * inputs_from_contract,
+        quantity_of(tx.mint, policy_id, hash) == -1 * inputs_from_contract,
         list.has(tx.extra_signatories, hash),
       },
       and {
