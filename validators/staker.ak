@@ -113,15 +113,8 @@ validator staker(
 }
 
 fn count_inputs(inputs: List<Input>, policy: ByteArray) {
-  list.foldl(
-    inputs,
-    0,
-    fn(n, total) {
-      if n.output.address.payment_credential == VerificationKey(policy) {
-        total + 1
-      } else {
-        total
-      }
-    },
-  )
+  inputs
+    |> list.count(
+        fn(input) { input.output.address.payment_credential == Script(policy) },
+      )
 }
