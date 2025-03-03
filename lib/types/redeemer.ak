@@ -35,7 +35,8 @@ pub type OracleRedeemer {
 }
 
 pub type RedeemerStaker {
-  signer: Address,
+  owner: Address,
+  signer_bot: Address,
   reference_index: Int,
   output_staking: Int,
 }

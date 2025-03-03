@@ -63,9 +63,13 @@ validator staker(
 
     let fldt_min_amount = datum_params.min_to_stake
 
-    expect Some(stake_cred_signer) = redeemer.signer.stake_credential
+    expect Some(stake_cred_signer) = redeemer.owner.stake_credential
     expect Inline(stake_key_hash) = stake_cred_signer
-    expect VerificationKey(hash) = stake_key_hash
+    expect VerificationKey(hash_owner) = stake_key_hash
+
+    expect Some(stake_cred_bot) = redeemer.signer_bot.stake_credential
+    expect Inline(stake_key_hash_bot) = stake_cred_bot
+    expect VerificationKey(hash_bot) = stake_key_hash_bot
 
     expect Some(output_staking) = list.at(tx.outputs, redeemer.output_staking)
     let contractCredential = Script(policy_id)
@@ -73,7 +77,7 @@ validator staker(
     let active_stake_address: Address =
       Address {
         payment_credential: contractCredential,
-        stake_credential: redeemer.signer.stake_credential,
+        stake_credential: redeemer.owner.stake_credential,
       }
 
     let inputs_from_contract = count_inputs(tx.inputs, policy_id)
@@ -82,8 +86,8 @@ validator staker(
       //Se minted value <0,
       and {
         dict.size(tokens(tx.mint, policy_id)) == 1,
-        quantity_of(tx.mint, policy_id, hash) == -1 * inputs_from_contract,
-        list.has(tx.extra_signatories, hash),
+        quantity_of(tx.mint, policy_id, hash_bot) == -1 * inputs_from_contract,
+        list.has(tx.extra_signatories, hash_owner),
       },
       and {
         //First output goes to stake address correct
@@ -93,11 +97,11 @@ validator staker(
         //only 1 token of same policy
         dict.size(tokens(tx.mint, policy_id)) == 1,
         //I must send the NFT I send, each user has different NFT assetname 
-        quantity_of(output_staking.value, policy_id, hash) == 1,
+        quantity_of(output_staking.value, policy_id, hash_bot) == 1,
         //I am minting only 1 NFT
-        quantity_of(tx.mint, policy_id, hash) == 1,
+        quantity_of(tx.mint, policy_id, hash_bot) == 1,
         //I am signing with staking hash
-        list.has(tx.extra_signatories, hash),
+        list.has(tx.extra_signatories, hash_owner),
         quantity_of(
           referenceInput.output.value,
           params_contract_hash,
