@@ -226,7 +226,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               isWhitelisted(self, datum.whitelistedAddresses),
               validate_time(self, datum.executionTime),
               list.has(self.extra_signatories, hash),
-              referenceInput.output.address.stake_credential == batcher.stake_credential,
               quantity_of(referenceInput.output.value, stakingContract, hash) == 1,
               quantity_of(
                 referenceInputParams.output.value,
