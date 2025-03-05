@@ -1,4 +1,4 @@
-use aiken/collection/dict
+use aiken/collection/dict.{values}
 use aiken/collection/list
 use cardano/address.{Address, Inline, Script, VerificationKey}
 use cardano/assets.{PolicyId, quantity_of, tokens}
@@ -40,12 +40,16 @@ validator staker(
             expect VerificationKey(hash) = a
             or {
               and {
-                quantity_of(input.output.value, contract, hash) == 0,
+                tokens(input.output.value, contract) == dict.empty,
+                //no tokens license inside the utxo
                 list.has(self.extra_signatories, hash),
               },
               and {
                 list.has(self.extra_signatories, hash),
-                quantity_of(self.mint, contract, hash) < 0,
+                list.all(
+                  values(tokens(input.output.value, contract)),
+                  fn(n) { n > 0 },
+                ),
               },
             }
           }
