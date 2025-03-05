@@ -46,10 +46,7 @@ validator staker(
               },
               and {
                 list.has(self.extra_signatories, hash),
-                list.all(
-                  values(tokens(input.output.value, contract)),
-                  fn(n) { n > 0 },
-                ),
+                list.all(values(tokens(self.mint, contract)), fn(n) { n > 0 }),
               },
             }
           }
