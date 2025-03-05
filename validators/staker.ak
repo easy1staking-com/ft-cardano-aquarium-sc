@@ -1,7 +1,7 @@
-use aiken/collection/dict.{values}
+use aiken/collection/dict.{keys}
 use aiken/collection/list
 use cardano/address.{Address, Inline, Script, VerificationKey}
-use cardano/assets.{PolicyId, quantity_of, tokens}
+use cardano/assets.{PolicyId, Value, quantity_of, tokens}
 use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
 use constants
 use types/datum.{DatumParameters}
@@ -38,18 +38,13 @@ validator staker(
         when stake_cred is {
           Inline(a) -> {
             expect VerificationKey(hash) = a
+            expect list.has(self.extra_signatories, hash)
             or {
-              and {
-                tokens(input.output.value, contract) == dict.empty,
-                //no tokens license inside the utxo
-                list.has(self.extra_signatories, hash),
-              },
-              and {
-                list.has(self.extra_signatories, hash),
-                list.all(values(tokens(self.mint, contract)), fn(n) { n < 0 }),
-              },
+              tokens(input.output.value, contract) == dict.empty,
+              is_burning(self.mint, contract),
             }
           }
+          //This is not enough, every token must be burnt
           _ -> False
         }
     }
@@ -122,4 +117,9 @@ fn count_inputs(inputs: List<Input>, policy: ByteArray) {
     |> list.count(
         fn(input) { input.output.address.payment_credential == Script(policy) },
       )
+}
+
+fn is_burning(mint: Value, policy: ByteArray) {
+  expect Some(assetname) = list.at(keys(tokens(mint, policy)), 0)
+  quantity_of(mint, policy, assetname) < 0
 }
