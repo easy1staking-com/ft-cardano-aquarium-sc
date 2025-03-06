@@ -23,7 +23,7 @@ validator staker(
 ) {
   spend(
     _datum: Option<Data>,
-    _redeemer: RedeemerStaker,
+    _redeemer: Data,
     own_ref: OutputReference,
     self: Transaction,
   ) {
