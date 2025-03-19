@@ -1,13 +1,16 @@
 use aiken/collection/list
 use aiken/collection/pairs
 use cardano/address.{Address, Script}
-use cardano/assets.{Value, quantity_of}
+use cardano/assets.{PolicyId, Value, quantity_of}
 use cardano/transaction.{Input,
   Output, Redeemer, ScriptPurpose, Spend, Withdraw}
 use constants
-use types/general.{Asset, CardanoToken}
+use types/general.{
+  Asset, CardanoToken, CharlieTokenSpecs, GenericData, PriceData,
+}
 use types/redeemer.{
   Aggregated, Dedicated, OraclePriceFeed, OracleRedeemer, Pooled,
+  PriceDataCharlie,
 }
 
 pub fn is_output_to_sc(output: Output, scHash: ByteArray) -> Bool {
@@ -62,6 +65,7 @@ pub fn is_feed_token_correct(
 pub fn retrieve_oracle_data(
   oracleInput: Input,
   redeemers: Pairs<ScriptPurpose, Redeemer>,
+  transaction_valid_from: Int,
   transaction_valid_to: Int,
   expectedPaymentToken: CardanoToken,
 ) -> Option<OraclePriceFeed> {
@@ -77,11 +81,13 @@ pub fn retrieve_oracle_data(
       Pooled { common, .. } -> common
       Aggregated { common, .. } -> common
       Dedicated { common, .. } -> common
+      PriceDataCharlie { common, .. } -> common
     }
 
   if and {
     commonFeedData.valid_to - commonFeedData.valid_from <= constants.max_oracle_validity_range,
     commonFeedData.valid_to >= transaction_valid_to,
+    commonFeedData.valid_from <= transaction_valid_from,
     is_feed_token_correct(expectedPaymentToken, commonFeedData.token),
   } {
     Some(loan_tokens_price.data)
@@ -89,4 +95,27 @@ pub fn retrieve_oracle_data(
     trace @"oracle is expired, has wrong token or wrong interval"
     None
   }
+}
+
+//-------------------------- CHARLIE 3 UTILS
+
+pub fn get_oracle_info(price_data: PriceData) -> (Int, Int, Int) {
+  when price_data is {
+    GenericData { price_map } ->
+      when price_map is {
+        [Pair(0, price), Pair(1, timestamp), Pair(2, expiry)] ->
+          (price, timestamp, expiry)
+        _ -> fail @"Invalid price, timestamp or expiry"
+      }
+    _ -> fail @"Invalid PriceData variant"
+  }
+}
+
+pub fn get_oracle_config(
+  oracle_specs: CharlieTokenSpecs,
+  feedToken: Asset,
+) -> (PolicyId, Int) {
+  expect Some(token_pairs) = pairs.get_first(oracle_specs, feedToken.policyId)
+  expect Some(result) = pairs.get_first(token_pairs, feedToken.assetName)
+  result
 }

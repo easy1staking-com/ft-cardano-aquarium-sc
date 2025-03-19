@@ -11,7 +11,8 @@ use types/datum.{DatumParameters, DatumTank}
 use types/general.{CardanoToken}
 use types/redeemer.{
   Aggregated, Consume, ConsumeAll, ConsumeAllOracle, ConsumeOracle, Dedicated,
-  OraclePriceFeed, Pooled, RedeemerTank, ScheduledTransaction, Withdraw,
+  OraclePriceFeed, Pooled, PriceDataCharlie, RedeemerTank, ScheduledTransaction,
+  Withdraw,
 }
 use utils.{retrieve_oracle_data, validate_oracle_ref_input}
 
@@ -278,11 +279,13 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
+            expect Finite(start) = self.validity_range.lower_bound.bound_type
             expect Finite(end) = self.validity_range.upper_bound.bound_type
             expect Some(oraclePriceFeed) =
               retrieve_oracle_data(
                 oracleRefInput,
                 self.redeemers,
+                start,
                 end,
                 payingToken,
               )
@@ -357,11 +360,13 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
+            expect Finite(start) = self.validity_range.lower_bound.bound_type
             expect Finite(end) = self.validity_range.upper_bound.bound_type
             expect Some(oraclePriceFeed) =
               retrieve_oracle_data(
                 oracleRefInput,
                 self.redeemers,
+                start,
                 end,
                 payingToken,
               )
@@ -473,6 +478,17 @@ fn validate_payment_output_oracle(
       }
     }
     Dedicated(_, token_price, denominator) -> {
+      expect Some(tokenPrice) = rational.new(token_price, denominator)
+      //This should work only if this oracle is providing lovelace price
+      expect Some(minTokenPayment) =
+        rational.div(from_int(feeAmount + min_ada * receivers), tokenPrice)
+      and {
+        rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
+        outputPayment.address == tankOwner,
+        check_dos_protection(outputPayment.value),
+      }
+    }
+    PriceDataCharlie(_, _, token_price, denominator) -> {
       expect Some(tokenPrice) = rational.new(token_price, denominator)
       //This should work only if this oracle is providing lovelace price
       expect Some(minTokenPayment) =

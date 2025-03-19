@@ -22,6 +22,12 @@ pub type OraclePriceFeed {
     price_in_lovelaces: Int,
     denominator: Int,
   }
+  PriceDataCharlie {
+    provider_ref_input_index: Int,
+    common: CommonFeedData,
+    price_in_lovelaces: Int,
+    price_denominator: Int,
+  }
 }
 
 pub type Signature {
