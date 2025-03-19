@@ -6,11 +6,12 @@ use cardano/transaction.{Input,
   Output, Redeemer, ScriptPurpose, Spend, Withdraw}
 use constants
 use types/general.{
-  Asset, CardanoToken, CharlieTokenSpecs, GenericData, PriceData,
+  Asset, CardanoToken, CharlieTokenSpecs, GenericData, OrcfaxTokenSpecs,
+  PriceData,
 }
 use types/redeemer.{
   Aggregated, Dedicated, OraclePriceFeed, OracleRedeemer, Pooled,
-  PriceDataCharlie,
+  PriceDataCharlie, PriceDataOrcfax,
 }
 
 pub fn is_output_to_sc(output: Output, scHash: ByteArray) -> Bool {
@@ -82,6 +83,7 @@ pub fn retrieve_oracle_data(
       Aggregated { common, .. } -> common
       Dedicated { common, .. } -> common
       PriceDataCharlie { common, .. } -> common
+      PriceDataOrcfax { common, .. } -> common
     }
 
   if and {
@@ -115,6 +117,15 @@ pub fn get_oracle_config(
   oracle_specs: CharlieTokenSpecs,
   feedToken: Asset,
 ) -> (PolicyId, Int) {
+  expect Some(token_pairs) = pairs.get_first(oracle_specs, feedToken.policyId)
+  expect Some(result) = pairs.get_first(token_pairs, feedToken.assetName)
+  result
+}
+
+pub fn get_oracle_orcfax_config(
+  oracle_specs: OrcfaxTokenSpecs,
+  feedToken: Asset,
+) -> (PolicyId, Int, ByteArray) {
   expect Some(token_pairs) = pairs.get_first(oracle_specs, feedToken.policyId)
   expect Some(result) = pairs.get_first(token_pairs, feedToken.assetName)
   result

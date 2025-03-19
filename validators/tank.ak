@@ -11,8 +11,8 @@ use types/datum.{DatumParameters, DatumTank}
 use types/general.{CardanoToken}
 use types/redeemer.{
   Aggregated, Consume, ConsumeAll, ConsumeAllOracle, ConsumeOracle, Dedicated,
-  OraclePriceFeed, Pooled, PriceDataCharlie, RedeemerTank, ScheduledTransaction,
-  Withdraw,
+  OraclePriceFeed, Pooled, PriceDataCharlie, PriceDataOrcfax, RedeemerTank,
+  ScheduledTransaction, Withdraw,
 }
 use utils.{retrieve_oracle_data, validate_oracle_ref_input}
 
@@ -489,6 +489,17 @@ fn validate_payment_output_oracle(
       }
     }
     PriceDataCharlie(_, _, token_price, denominator) -> {
+      expect Some(tokenPrice) = rational.new(token_price, denominator)
+      //This should work only if this oracle is providing lovelace price
+      expect Some(minTokenPayment) =
+        rational.div(from_int(feeAmount + min_ada * receivers), tokenPrice)
+      and {
+        rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
+        outputPayment.address == tankOwner,
+        check_dos_protection(outputPayment.value),
+      }
+    }
+    PriceDataOrcfax(_, _, _, token_price, denominator) -> {
       expect Some(tokenPrice) = rational.new(token_price, denominator)
       //This should work only if this oracle is providing lovelace price
       expect Some(minTokenPayment) =
