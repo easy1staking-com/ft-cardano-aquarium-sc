@@ -10,3 +10,6 @@ pub const orcfax_identifier_pointer_asset_name = #"000de140"
 
 //feed is empty
 pub const orcfax_identifier_feed_asset_name = ""
+
+//7 hours max time hearbeat
+pub const max_orcfax_tolerance = 25200000
