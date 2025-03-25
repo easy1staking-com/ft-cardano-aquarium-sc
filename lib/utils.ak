@@ -169,10 +169,10 @@ pub fn force_spend_inputs(
 }
 
 fn tail_recursive(purposes: Pairs<ScriptPurpose, Redeemer>, n: Int) {
-  expect Some(purposes_tailed) = list.tail(purposes)
   if n > 1 {
+    expect Some(purposes_tailed) = list.tail(purposes)
     tail_recursive(purposes_tailed, n - 1)
   } else {
-    purposes_tailed
+    purposes
   }
 }
