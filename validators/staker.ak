@@ -6,6 +6,7 @@ use cardano/transaction.{InlineDatum, Input, OutputReference, Transaction}
 use constants
 use types/datum.{DatumParameters}
 use types/redeemer.{RedeemerStaker}
+use utils.{force_spend_inputs}
 
 //the process is simple, every user can mint an NFT, I can stake multiple times but no advantage
 //to unstake I need to burn the NFT, I can unstake multiple times
@@ -76,14 +77,16 @@ validator staker(
         stake_credential: redeemer.owner.stake_credential,
       }
 
-    let inputs_from_contract = count_inputs(tx.inputs, policy_id)
+    let inputs_from_contract = redeemer.staking_inputs
 
+    //In case of burn we need to expect the spend N 
     or {
       //Se minted value <0,
       and {
         dict.size(tokens(tx.mint, policy_id)) == 1,
         quantity_of(tx.mint, policy_id, hash_bot) == -1 * inputs_from_contract,
         list.has(tx.extra_signatories, hash_owner),
+        force_spend_inputs(tx.redeemers, inputs_from_contract),
       },
       and {
         //First output goes to stake address correct
@@ -110,13 +113,6 @@ validator staker(
   else(_) {
     fail
   }
-}
-
-fn count_inputs(inputs: List<Input>, policy: ByteArray) {
-  inputs
-    |> list.count(
-        fn(input) { input.output.address.payment_credential == Script(policy) },
-      )
 }
 
 fn is_burning(mint: Value, policy: ByteArray) {

@@ -52,6 +52,7 @@ pub type RedeemerStaker {
   signer_bot: Address,
   reference_index: Int,
   output_staking: Int,
+  staking_inputs: Int,
 }
 
 pub type RedeemerTank {

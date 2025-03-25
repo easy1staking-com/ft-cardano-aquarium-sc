@@ -130,3 +130,49 @@ pub fn get_oracle_orcfax_config(
   expect Some(result) = pairs.get_first(token_pairs, feedToken.assetName)
   result
 }
+
+pub fn count_inputs(inputs: List<Input>, policy: ByteArray) {
+  inputs
+    |> list.count(
+        fn(input) { input.output.address.payment_credential == Script(policy) },
+      )
+}
+
+pub fn force_spend_inputs(
+  purposes: Pairs<ScriptPurpose, Redeemer>,
+  spend_inputs: Int,
+) {
+  //we remove the first n - 1 purposes, because that's what we expect to have in the inputs
+  let filtered_purposes = tail_recursive(purposes, spend_inputs - 1)
+
+  expect Some(first_purpose) = list.at(filtered_purposes, 0)
+  let maybe_purpose = list.at(filtered_purposes, 1)
+  let head_check =
+    when first_purpose.1st is {
+      Spend(_) -> True
+      _ -> False
+    }
+  let tail_check =
+    when maybe_purpose is {
+      Some(next_purpose) ->
+        when next_purpose.1st is {
+          Spend(_) -> False
+          _ -> True
+        }
+      None -> True
+    }
+
+  and {
+    head_check,
+    tail_check,
+  }
+}
+
+fn tail_recursive(purposes: Pairs<ScriptPurpose, Redeemer>, n: Int) {
+  expect Some(purposes_tailed) = list.tail(purposes)
+  if n > 1 {
+    tail_recursive(purposes_tailed, n - 1)
+  } else {
+    purposes_tailed
+  }
+}
