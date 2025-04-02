@@ -313,6 +313,11 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 min_ada,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
+              quantity_of(
+                referenceInputParams.output.value,
+                params_contract_hash,
+                "parameters",
+              ) == 1,
             }
           }
 
@@ -393,6 +398,11 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 min_ada,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
+              quantity_of(
+                referenceInputParams.output.value,
+                params_contract_hash,
+                "parameters",
+              ) == 1,
             }
           }
         }
