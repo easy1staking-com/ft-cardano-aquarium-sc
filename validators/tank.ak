@@ -147,7 +147,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               own_ref == inputTank.output_reference,
               // verify that the paying token is greater than the fee
 
-              inputTankAmount <= feeAmount,
+              inputTankAmount <= feeAmount + receivers * min_ada,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_payment_output(
                 outputPayment,
@@ -291,7 +291,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             and {
-              inputTankAmount <= feeAmount,
+              inputTankAmount <= feeAmount + receivers * min_ada,
               own_ref == inputTank.output_reference,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_tank_output(
