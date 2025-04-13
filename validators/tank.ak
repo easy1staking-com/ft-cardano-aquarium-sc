@@ -27,6 +27,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
       self.inputs
         |> transaction.find_input(own_ref)
     expect Script(ownScriptHash) = input.output.address.payment_credential
+    let tank_inputs = get_inputs_from_sc(self.inputs, ownScriptHash)
 
     when datum is {
       None ->
@@ -49,11 +50,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             receivers,
             reference_params_index,
           ) -> {
-            expect Some(inputTank) =
-              list.at(
-                get_inputs_from_sc(self.inputs, ownScriptHash),
-                inputTankIndex,
-              )
+            expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
 
             expect Some(outputTank) = list.at(self.outputs, inputTankIndex)
@@ -80,6 +77,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
 
             and {
+              list.length(tank_inputs) == 1,
               own_ref == inputTank.output_reference,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_tank_output(
@@ -115,11 +113,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             receivers,
             reference_params_index,
           ) -> {
-            expect Some(inputTank) =
-              list.at(
-                get_inputs_from_sc(self.inputs, ownScriptHash),
-                inputTankIndex,
-              )
+            expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
 
             expect Some(outputPayment) = list.at(self.outputs, inputTankIndex)
@@ -146,7 +140,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             and {
               own_ref == inputTank.output_reference,
               // verify that the paying token is greater than the fee
-
+              list.length(tank_inputs) == 1,
               inputTankAmount <= feeAmount + receivers * min_ada,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_payment_output(
@@ -250,11 +244,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 payingToken,
               ) == True
 
-            expect Some(inputTank) =
-              list.at(
-                get_inputs_from_sc(self.inputs, ownScriptHash),
-                inputTankIndex,
-              )
+            expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
 
             expect Some(outputTank) = list.at(self.outputs, inputTankIndex)
@@ -291,6 +281,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             and {
+              list.length(tank_inputs) == 1,
               inputTankAmount <= feeAmount + receivers * min_ada,
               own_ref == inputTank.output_reference,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
@@ -336,11 +327,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 payingToken,
               ) == True
 
-            expect Some(inputTank) =
-              list.at(
-                get_inputs_from_sc(self.inputs, ownScriptHash),
-                inputTankIndex,
-              )
+            expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
 
             expect Some(outputTank) = list.at(self.outputs, inputTankIndex)
@@ -377,6 +364,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             and {
+              list.length(tank_inputs) == 1,
               own_ref == inputTank.output_reference,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_tank_output(
