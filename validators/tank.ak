@@ -89,6 +89,11 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               isWhitelisted(self, datum.whitelistedAddresses),
               is_none(payingToken.oracle),
               min_ada <= max_min_ada,
+              quantity_of(
+                referenceInputParams.output.value,
+                params_contract_hash,
+                "parameters",
+              ) == 1,
             }
           }
 
@@ -139,6 +144,11 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               isWhitelisted(self, datum.whitelistedAddresses),
               is_none(payingToken.oracle),
               min_ada <= max_min_ada,
+              quantity_of(
+                referenceInputParams.output.value,
+                params_contract_hash,
+                "parameters",
+              ) == 1,
             }
           }
 
@@ -275,6 +285,11 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
               min_ada <= max_min_ada,
+              quantity_of(
+                referenceInputParams.output.value,
+                params_contract_hash,
+                "parameters",
+              ) == 1,
             }
           }
 
@@ -344,6 +359,11 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
               min_ada <= max_min_ada,
+              quantity_of(
+                referenceInputParams.output.value,
+                params_contract_hash,
+                "parameters",
+              ) == 1,
             }
           }
         }
