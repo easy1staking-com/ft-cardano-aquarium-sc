@@ -47,8 +47,8 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
           Consume(
             payingToken,
             inputTankIndex,
-            receivers,
-            reference_params_index,
+            _receivers,
+            _reference_params_index,
           ) -> {
             expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
@@ -57,16 +57,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             expect Some(outputPayment) =
               list.at(self.outputs, inputTankIndex + 1)
 
-            expect Some(referenceInputParams) =
-              list.at(self.reference_inputs, reference_params_index)
-
-            expect InlineDatum(datum_params) = referenceInputParams.output.datum
-            expect datum_parsed: DatumParameters = datum_params
-            let min_ada = datum_parsed.min_ada
-
-            // calculate fee of transaction (ADA)
-            let feeAmount = self.fee
-
             let outputPaymentAmount =
               quantity_of(
                 outputPayment.value,
@@ -75,35 +65,23 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
+            let leftoverTankAmount = quantity_of(outputTank.value, "", "")
+            let min_ada = quantity_of(outputPayment.value, "", "")
 
             and {
               list.length(tank_inputs) == 1,
               own_ref == inputTank.output_reference,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
-              validate_tank_output(
-                inputTank,
-                outputTank,
-                inputTankAmount,
-                feeAmount,
-                receivers,
-                min_ada,
-              ),
+              validate_tank_output(inputTank, outputTank),
               validate_payment_output(
                 outputPayment,
                 outputPaymentAmount,
-                feeAmount,
                 payingToken,
                 datum.tankOwner,
-                receivers,
-                min_ada,
+                inputTankAmount - leftoverTankAmount - min_ada,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
               is_none(payingToken.oracle),
-              quantity_of(
-                referenceInputParams.output.value,
-                params_contract_hash,
-                "parameters",
-              ) == 1,
             }
           }
 
@@ -111,19 +89,12 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             payingToken,
             inputTankIndex,
             receivers,
-            reference_params_index,
+            _reference_params_index,
           ) -> {
             expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
 
             expect Some(outputPayment) = list.at(self.outputs, inputTankIndex)
-
-            expect Some(referenceInputParams) =
-              list.at(self.reference_inputs, reference_params_index)
-
-            expect InlineDatum(datum_params) = referenceInputParams.output.datum
-            expect datum_parsed: DatumParameters = datum_params
-            let min_ada = datum_parsed.min_ada
 
             // calculate fee of transaction (ADA)
             let feeAmount = self.fee
@@ -136,6 +107,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
+            let min_ada = quantity_of(outputPayment.value, "", "")
 
             and {
               own_ref == inputTank.output_reference,
@@ -146,19 +118,12 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               validate_payment_output(
                 outputPayment,
                 outputPaymentAmount,
-                feeAmount,
                 payingToken,
                 datum.tankOwner,
-                receivers,
-                min_ada,
+                inputTankAmount - min_ada,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
               is_none(payingToken.oracle),
-              quantity_of(
-                referenceInputParams.output.value,
-                params_contract_hash,
-                "parameters",
-              ) == 1,
             }
           }
 
@@ -234,7 +199,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             inputTankIndex,
             receivers,
             oracleIndex,
-            reference_params_index,
+            _reference_params_index,
           ) -> {
             expect Some(oracleRefInput) =
               list.at(self.reference_inputs, oracleIndex)
@@ -247,16 +212,8 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
 
-            expect Some(outputTank) = list.at(self.outputs, inputTankIndex)
             expect Some(outputPayment) =
               list.at(self.outputs, inputTankIndex + 1)
-
-            expect Some(referenceInputParams) =
-              list.at(self.reference_inputs, reference_params_index)
-
-            expect InlineDatum(datum_params) = referenceInputParams.output.datum
-            expect datum_parsed: DatumParameters = datum_params
-            let min_ada = datum_parsed.min_ada
 
             // calculate fee of transaction (ADA)
             let feeAmount = self.fee
@@ -269,6 +226,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
+            let min_ada = quantity_of(outputPayment.value, "", "")
             expect Finite(start) = self.validity_range.lower_bound.bound_type
             expect Finite(end) = self.validity_range.upper_bound.bound_type
             expect Some(oraclePriceFeed) =
@@ -285,39 +243,24 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               inputTankAmount <= feeAmount + receivers * min_ada,
               own_ref == inputTank.output_reference,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
-              validate_tank_output(
-                inputTank,
-                outputTank,
-                inputTankAmount,
-                feeAmount,
-                receivers,
-                min_ada,
-              ),
               validate_payment_output_oracle(
                 outputPayment,
                 outputPaymentAmount,
-                feeAmount,
                 payingToken,
                 datum.tankOwner,
-                receivers,
                 oraclePriceFeed,
-                min_ada,
+                inputTankAmount - min_ada,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
-              quantity_of(
-                referenceInputParams.output.value,
-                params_contract_hash,
-                "parameters",
-              ) == 1,
             }
           }
 
           ConsumeOracle(
             payingToken,
             inputTankIndex,
-            receivers,
+            _receivers,
             oracleIndex,
-            reference_params_index,
+            _reference_params_index,
           ) -> {
             expect Some(oracleRefInput) =
               list.at(self.reference_inputs, oracleIndex)
@@ -334,16 +277,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             expect Some(outputPayment) =
               list.at(self.outputs, inputTankIndex + 1)
 
-            expect Some(referenceInputParams) =
-              list.at(self.reference_inputs, reference_params_index)
-
-            expect InlineDatum(datum_params) = referenceInputParams.output.datum
-            expect datum_parsed: DatumParameters = datum_params
-            let min_ada = datum_parsed.min_ada
-
-            // calculate fee of transaction (ADA)
-            let feeAmount = self.fee
-
             let outputPaymentAmount =
               quantity_of(
                 outputPayment.value,
@@ -352,6 +285,9 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               )
 
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
+            let leftoverTankAmount = quantity_of(outputTank.value, "", "")
+            let min_ada = quantity_of(outputPayment.value, "", "")
+
             expect Finite(start) = self.validity_range.lower_bound.bound_type
             expect Finite(end) = self.validity_range.upper_bound.bound_type
             expect Some(oraclePriceFeed) =
@@ -367,30 +303,16 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               list.length(tank_inputs) == 1,
               own_ref == inputTank.output_reference,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
-              validate_tank_output(
-                inputTank,
-                outputTank,
-                inputTankAmount,
-                feeAmount,
-                receivers,
-                min_ada,
-              ),
+              validate_tank_output(inputTank, outputTank),
               validate_payment_output_oracle(
                 outputPayment,
                 outputPaymentAmount,
-                feeAmount,
                 payingToken,
                 datum.tankOwner,
-                receivers,
                 oraclePriceFeed,
-                min_ada,
+                inputTankAmount - leftoverTankAmount - min_ada,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
-              quantity_of(
-                referenceInputParams.output.value,
-                params_contract_hash,
-                "parameters",
-              ) == 1,
             }
           }
         }
@@ -402,22 +324,9 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
   }
 }
 
-fn validate_tank_output(
-  inputTank: Input,
-  outputTank: Output,
-  inputTankAmount: Int,
-  feeAmount: Int,
-  receivers: Int,
-  min_ada: Int,
-) {
-  let outputTankAmount = quantity_of(outputTank.value, "", "")
-
+fn validate_tank_output(inputTank: Input, outputTank: Output) {
   and {
     check_dos_protection(outputTank.value),
-    // verify that the output tank is equal than the input tank - fee (only ADA)
-    outputTankAmount >= inputTankAmount - feeAmount - min_ada * (
-      receivers + 1
-    ),
     // verify that the input tank datum is equal to the output tank datum
     inputTank.output.datum == outputTank.datum,
     outputTank.address == inputTank.output.address,
@@ -427,14 +336,12 @@ fn validate_tank_output(
 fn validate_payment_output(
   outputPayment: Output,
   outputPaymentAmount: Int,
-  feeAmount: Int,
   payingToken: CardanoToken,
   tankOwner: Address,
-  receivers: Int,
-  min_ada: Int,
+  ada_used: Int,
 ) {
   and {
-    ( feeAmount + min_ada * receivers ) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
+    ada_used * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
     check_dos_protection(outputPayment.value),
   }
@@ -443,12 +350,10 @@ fn validate_payment_output(
 fn validate_payment_output_oracle(
   outputPayment: Output,
   outputPaymentAmount: Int,
-  feeAmount: Int,
   payingToken: CardanoToken,
   tankOwner: Address,
-  receivers: Int,
   oraclePriceFeed: OraclePriceFeed,
-  min_ada: Int,
+  used_ada: Int,
 ) {
   when oraclePriceFeed is {
     Aggregated(_, token_price_in_lovelaces, denominator) -> {
@@ -456,7 +361,7 @@ fn validate_payment_output_oracle(
         rational.new(token_price_in_lovelaces, denominator)
       //This price is in lovelace
       expect Some(minTokenPayment) =
-        rational.div(from_int(feeAmount + min_ada * receivers), tokenPrice)
+        rational.div(from_int(used_ada), tokenPrice)
       and {
         //we use * payingToken.amount / payingToken.divider in order to adjut the ratio over the oracle value, the oracles gives the price but maybe I want to get paid 10% more of the oracle price
         rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
@@ -468,7 +373,7 @@ fn validate_payment_output_oracle(
       //Is this correct? tokenA is the liquidity pair and tokenB is the token itself
       expect Some(tokenPrice) = rational.new(token_a_amount, token_b_amount)
       expect Some(minTokenPayment) =
-        rational.div(from_int(feeAmount + min_ada * receivers), tokenPrice)
+        rational.div(from_int(used_ada), tokenPrice)
       and {
         rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
         outputPayment.address == tankOwner,
@@ -479,7 +384,7 @@ fn validate_payment_output_oracle(
       expect Some(tokenPrice) = rational.new(token_price, denominator)
       //This should work only if this oracle is providing lovelace price
       expect Some(minTokenPayment) =
-        rational.div(from_int(feeAmount + min_ada * receivers), tokenPrice)
+        rational.div(from_int(used_ada), tokenPrice)
       and {
         rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
         outputPayment.address == tankOwner,
@@ -490,7 +395,7 @@ fn validate_payment_output_oracle(
       expect Some(tokenPrice) = rational.new(token_price, denominator)
       //This should work only if this oracle is providing lovelace price
       expect Some(minTokenPayment) =
-        rational.div(from_int(feeAmount + min_ada * receivers), tokenPrice)
+        rational.div(from_int(used_ada), tokenPrice)
       and {
         rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
         outputPayment.address == tankOwner,
@@ -501,7 +406,7 @@ fn validate_payment_output_oracle(
       expect Some(tokenPrice) = rational.new(token_price, denominator)
       //This should work only if this oracle is providing lovelace price
       expect Some(minTokenPayment) =
-        rational.div(from_int(feeAmount + min_ada * receivers), tokenPrice)
+        rational.div(from_int(used_ada), tokenPrice)
       and {
         rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
         outputPayment.address == tankOwner,
