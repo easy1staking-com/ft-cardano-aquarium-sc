@@ -48,7 +48,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             payingToken,
             inputTankIndex,
             _receivers,
-            _reference_params_index,
+            reference_params_index,
           ) -> {
             expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
@@ -64,6 +64,12 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 payingToken.assetName,
               )
 
+            expect Some(referenceInputParams) =
+              list.at(self.reference_inputs, reference_params_index)
+
+            expect InlineDatum(datum_params) = referenceInputParams.output.datum
+            expect datum_parsed: DatumParameters = datum_params
+            let max_min_ada = datum_parsed.min_ada
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
             let leftoverTankAmount = quantity_of(outputTank.value, "", "")
             let min_ada = quantity_of(outputPayment.value, "", "")
@@ -82,6 +88,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
               is_none(payingToken.oracle),
+              min_ada <= max_min_ada,
             }
           }
 
@@ -89,10 +96,17 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             payingToken,
             inputTankIndex,
             receivers,
-            _reference_params_index,
+            reference_params_index,
           ) -> {
             expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
+
+            expect Some(referenceInputParams) =
+              list.at(self.reference_inputs, reference_params_index)
+
+            expect InlineDatum(datum_params) = referenceInputParams.output.datum
+            expect datum_parsed: DatumParameters = datum_params
+            let max_min_ada = datum_parsed.min_ada
 
             expect Some(outputPayment) = list.at(self.outputs, inputTankIndex)
 
@@ -124,6 +138,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
               is_none(payingToken.oracle),
+              min_ada <= max_min_ada,
             }
           }
 
@@ -199,7 +214,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             inputTankIndex,
             receivers,
             oracleIndex,
-            _reference_params_index,
+            reference_params_index,
           ) -> {
             expect Some(oracleRefInput) =
               list.at(self.reference_inputs, oracleIndex)
@@ -214,6 +229,13 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
 
             expect Some(outputPayment) =
               list.at(self.outputs, inputTankIndex + 1)
+
+            expect Some(referenceInputParams) =
+              list.at(self.reference_inputs, reference_params_index)
+
+            expect InlineDatum(datum_params) = referenceInputParams.output.datum
+            expect datum_parsed: DatumParameters = datum_params
+            let max_min_ada = datum_parsed.min_ada
 
             // calculate fee of transaction (ADA)
             let feeAmount = self.fee
@@ -252,6 +274,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 inputTankAmount - min_ada,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
+              min_ada <= max_min_ada,
             }
           }
 
@@ -260,7 +283,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             inputTankIndex,
             _receivers,
             oracleIndex,
-            _reference_params_index,
+            reference_params_index,
           ) -> {
             expect Some(oracleRefInput) =
               list.at(self.reference_inputs, oracleIndex)
@@ -283,6 +306,13 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 payingToken.policyId,
                 payingToken.assetName,
               )
+
+            expect Some(referenceInputParams) =
+              list.at(self.reference_inputs, reference_params_index)
+
+            expect InlineDatum(datum_params) = referenceInputParams.output.datum
+            expect datum_parsed: DatumParameters = datum_params
+            let max_min_ada = datum_parsed.min_ada
 
             let inputTankAmount = quantity_of(inputTankAsOutput.value, "", "")
             let leftoverTankAmount = quantity_of(outputTank.value, "", "")
@@ -313,6 +343,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 inputTankAmount - leftoverTankAmount - min_ada,
               ),
               isWhitelisted(self, datum.whitelistedAddresses),
+              min_ada <= max_min_ada,
             }
           }
         }
