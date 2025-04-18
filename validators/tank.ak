@@ -100,7 +100,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
           ConsumeAll(
             payingToken,
             inputTankIndex,
-            receivers,
+            _receivers,
             reference_params_index,
           ) -> {
             expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
@@ -114,9 +114,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             let max_min_ada = datum_parsed.min_ada
 
             expect Some(outputPayment) = list.at(self.outputs, inputTankIndex)
-
-            // calculate fee of transaction (ADA)
-            let feeAmount = self.fee
 
             let outputPaymentAmount =
               quantity_of(
@@ -132,7 +129,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               own_ref == inputTank.output_reference,
               // verify that the paying token is greater than the fee
               list.length(tank_inputs) == 1,
-              inputTankAmount <= feeAmount + receivers * min_ada,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_payment_output(
                 outputPayment,
@@ -222,7 +218,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
           ConsumeAllOracle(
             payingToken,
             inputTankIndex,
-            receivers,
+            _receivers,
             oracleIndex,
             reference_params_index,
           ) -> {
@@ -247,9 +243,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             expect datum_parsed: DatumParameters = datum_params
             let max_min_ada = datum_parsed.min_ada
 
-            // calculate fee of transaction (ADA)
-            let feeAmount = self.fee
-
             let outputPaymentAmount =
               quantity_of(
                 outputPayment.value,
@@ -272,7 +265,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
 
             and {
               list.length(tank_inputs) == 1,
-              inputTankAmount <= feeAmount + receivers * min_ada,
               own_ref == inputTank.output_reference,
               verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_payment_output_oracle(
