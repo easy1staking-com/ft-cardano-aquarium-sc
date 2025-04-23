@@ -1,9 +1,9 @@
-use aiken/collection/list.{length}
+use aiken/collection/list
 use aiken/interval.{Finite}
 use aiken/math/rational.{from_int}
 use aiken/option.{is_none}
 use cardano/address.{Address, Inline, Script, VerificationKey}
-use cardano/assets.{Value, flatten, quantity_of}
+use cardano/assets.{Value, quantity_of, reduce}
 use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction,
 }
@@ -45,10 +45,11 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
       Some(datum) ->
         when redeemer is {
           Consume(
-            payingToken,
+            payingTokenIndex,
             inputTankIndex,
             _receivers,
             reference_params_index,
+            whitelist_index,
           ) -> {
             expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
@@ -56,6 +57,9 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             expect Some(outputTank) = list.at(self.outputs, inputTankIndex)
             expect Some(outputPayment) =
               list.at(self.outputs, inputTankIndex + 1)
+
+            expect Some(payingToken) =
+              list.at(datum.allowedTokens, payingTokenIndex)
 
             let outputPaymentAmount =
               quantity_of(
@@ -86,7 +90,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 datum.tankOwner,
                 inputTankAmount - leftoverTankAmount - min_ada,
               ),
-              isWhitelisted(self, datum.whitelistedAddresses),
+              isWhitelisted(self, datum.whitelistedAddresses, whitelist_index),
               is_none(payingToken.oracle),
               min_ada <= max_min_ada,
               quantity_of(
@@ -98,10 +102,11 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
           }
 
           ConsumeAll(
-            payingToken,
+            payingTokenIndex,
             inputTankIndex,
             _receivers,
             reference_params_index,
+            whitelist_index,
           ) -> {
             expect Some(inputTank) = list.at(tank_inputs, inputTankIndex)
             let inputTankAsOutput = inputTank.output
@@ -114,6 +119,8 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             let max_min_ada = datum_parsed.min_ada
 
             expect Some(outputPayment) = list.at(self.outputs, inputTankIndex)
+            expect Some(payingToken) =
+              list.at(datum.allowedTokens, payingTokenIndex)
 
             let outputPaymentAmount =
               quantity_of(
@@ -137,7 +144,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 datum.tankOwner,
                 inputTankAmount - min_ada,
               ),
-              isWhitelisted(self, datum.whitelistedAddresses),
+              isWhitelisted(self, datum.whitelistedAddresses, whitelist_index),
               is_none(payingToken.oracle),
               min_ada <= max_min_ada,
               quantity_of(
@@ -155,6 +162,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             batcher,
             reference_staking_index,
             reference_params_index,
+            whitelist_index,
           ) -> {
             expect Some(outputScheduled) = list.at(self.outputs, inputTankIndex)
             expect Some(inputTank) =
@@ -204,7 +212,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 datum.reward,
                 address_treasury,
               ),
-              isWhitelisted(self, datum.whitelistedAddresses),
+              isWhitelisted(self, datum.whitelistedAddresses, whitelist_index),
               validate_time(self, datum.executionTime),
               list.has(self.extra_signatories, hash),
               quantity_of(referenceInput.output.value, stakingContract, hash) == 1,
@@ -216,14 +224,19 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             }
           }
           ConsumeAllOracle(
-            payingToken,
+            payingTokenIndex,
             inputTankIndex,
             _receivers,
             oracleIndex,
             reference_params_index,
+            whitelist_index,
           ) -> {
             expect Some(oracleRefInput) =
               list.at(self.reference_inputs, oracleIndex)
+
+            expect Some(payingToken) =
+              list.at(datum.allowedTokens, payingTokenIndex)
+
             expect
               validate_oracle_ref_input(
                 oracleRefInput.output.value,
@@ -275,7 +288,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 oraclePriceFeed,
                 inputTankAmount - min_ada,
               ),
-              isWhitelisted(self, datum.whitelistedAddresses),
+              isWhitelisted(self, datum.whitelistedAddresses, whitelist_index),
               min_ada <= max_min_ada,
               quantity_of(
                 referenceInputParams.output.value,
@@ -286,14 +299,19 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
           }
 
           ConsumeOracle(
-            payingToken,
+            payingTokenIndex,
             inputTankIndex,
             _receivers,
             oracleIndex,
             reference_params_index,
+            whitelist_index,
           ) -> {
             expect Some(oracleRefInput) =
               list.at(self.reference_inputs, oracleIndex)
+
+            expect Some(payingToken) =
+              list.at(datum.allowedTokens, payingTokenIndex)
+
             expect
               validate_oracle_ref_input(
                 oracleRefInput.output.value,
@@ -349,7 +367,7 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
                 oraclePriceFeed,
                 inputTankAmount - leftoverTankAmount - min_ada,
               ),
-              isWhitelisted(self, datum.whitelistedAddresses),
+              isWhitelisted(self, datum.whitelistedAddresses, whitelist_index),
               min_ada <= max_min_ada,
               quantity_of(
                 referenceInputParams.output.value,
@@ -398,64 +416,25 @@ fn validate_payment_output_oracle(
   oraclePriceFeed: OraclePriceFeed,
   used_ada: Int,
 ) {
-  when oraclePriceFeed is {
-    Aggregated(_, token_price_in_lovelaces, denominator) -> {
-      expect Some(tokenPrice) =
+  expect Some(tokenPrice) =
+    when oraclePriceFeed is {
+      Aggregated(_, token_price_in_lovelaces, denominator) ->
         rational.new(token_price_in_lovelaces, denominator)
-      //This price is in lovelace
-      expect Some(minTokenPayment) =
-        rational.div(from_int(used_ada), tokenPrice)
-      and {
-        //we use * payingToken.amount / payingToken.divider in order to adjut the ratio over the oracle value, the oracles gives the price but maybe I want to get paid 10% more of the oracle price
-        rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
-        outputPayment.address == tankOwner,
-        check_dos_protection(outputPayment.value),
-      }
+      Pooled(_, token_a_amount, token_b_amount) ->
+        rational.new(token_a_amount, token_b_amount)
+      Dedicated(_, token_price, denominator) ->
+        rational.new(token_price, denominator)
+      PriceDataCharlie(_, _, token_price, denominator) ->
+        rational.new(token_price, denominator)
+      PriceDataOrcfax(_, _, _, token_price, denominator) ->
+        rational.new(token_price, denominator)
     }
-    Pooled(_, token_a_amount, token_b_amount) -> {
-      //Is this correct? tokenA is the liquidity pair and tokenB is the token itself
-      expect Some(tokenPrice) = rational.new(token_a_amount, token_b_amount)
-      expect Some(minTokenPayment) =
-        rational.div(from_int(used_ada), tokenPrice)
-      and {
-        rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
-        outputPayment.address == tankOwner,
-        check_dos_protection(outputPayment.value),
-      }
-    }
-    Dedicated(_, token_price, denominator) -> {
-      expect Some(tokenPrice) = rational.new(token_price, denominator)
-      //This should work only if this oracle is providing lovelace price
-      expect Some(minTokenPayment) =
-        rational.div(from_int(used_ada), tokenPrice)
-      and {
-        rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
-        outputPayment.address == tankOwner,
-        check_dos_protection(outputPayment.value),
-      }
-    }
-    PriceDataCharlie(_, _, token_price, denominator) -> {
-      expect Some(tokenPrice) = rational.new(token_price, denominator)
-      //This should work only if this oracle is providing lovelace price
-      expect Some(minTokenPayment) =
-        rational.div(from_int(used_ada), tokenPrice)
-      and {
-        rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
-        outputPayment.address == tankOwner,
-        check_dos_protection(outputPayment.value),
-      }
-    }
-    PriceDataOrcfax(_, _, _, token_price, denominator) -> {
-      expect Some(tokenPrice) = rational.new(token_price, denominator)
-      //This should work only if this oracle is providing lovelace price
-      expect Some(minTokenPayment) =
-        rational.div(from_int(used_ada), tokenPrice)
-      and {
-        rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
-        outputPayment.address == tankOwner,
-        check_dos_protection(outputPayment.value),
-      }
-    }
+
+  expect Some(minTokenPayment) = rational.div(from_int(used_ada), tokenPrice)
+  and {
+    rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
+    outputPayment.address == tankOwner,
+    check_dos_protection(outputPayment.value),
   }
 }
 
@@ -467,7 +446,7 @@ fn verify_paying_with_allowed_token(
 }
 
 fn check_dos_protection(value: Value) {
-  length(flatten(value)) <= 5
+  reduce(value, 0, fn(_, _, _, count) { count + 1 }) <= 5
 }
 
 fn must_be_signed_by_user_contract(transaction: Transaction, address: Address) {
@@ -476,12 +455,14 @@ fn must_be_signed_by_user_contract(transaction: Transaction, address: Address) {
   list.has(input_addresses, address)
 }
 
-fn isWhitelisted(transaction: Transaction, whitelistedAddresses: List<Address>) {
+fn isWhitelisted(
+  transaction: Transaction,
+  whitelistedAddresses: List<Address>,
+  index: Int,
+) {
   if list.length(whitelistedAddresses) > 0 {
-    list.any(
-      whitelistedAddresses,
-      fn(addr) { must_be_signed_by_user_contract(transaction, addr) },
-    )
+    expect Some(whitelisted) = list.at(whitelistedAddresses, index)
+    must_be_signed_by_user_contract(transaction, whitelisted)
   } else {
     True
   }

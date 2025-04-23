@@ -1,5 +1,5 @@
 use cardano/address.{Address}
-use types/general.{Asset, CardanoToken}
+use types/general.{Asset}
 
 pub type CommonFeedData {
   valid_from: Int,
@@ -57,16 +57,18 @@ pub type RedeemerStaker {
 
 pub type RedeemerTank {
   Consume {
-    payingToken: CardanoToken,
+    payingTokenIndex: Int,
     inputTankIndex: Int,
     receivers: Int,
     reference_params_index: Int,
+    whitelist_index: Int,
   }
   ConsumeAll {
-    payingToken: CardanoToken,
+    payingTokenIndex: Int,
     inputTankIndex: Int,
     receivers: Int,
     reference_params_index: Int,
+    whitelist_index: Int,
   }
   Withdraw
   ScheduledTransaction {
@@ -74,19 +76,22 @@ pub type RedeemerTank {
     batcher: Address,
     reference_staking_index: Int,
     reference_params_index: Int,
+    whitelist_index: Int,
   }
   ConsumeOracle {
-    payingToken: CardanoToken,
+    payingTokenIndex: Int,
     inputTankIndex: Int,
     receivers: Int,
     oracleIndex: Int,
     reference_params_index: Int,
+    whitelist_index: Int,
   }
   ConsumeAllOracle {
-    payingToken: CardanoToken,
+    payingTokenIndex: Int,
     inputTankIndex: Int,
     receivers: Int,
     oracleIndex: Int,
     reference_params_index: Int,
+    whitelist_index: Int,
   }
 }
