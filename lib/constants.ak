@@ -15,3 +15,5 @@ pub const orcfax_identifier_feed_asset_name = ""
 pub const max_orcfax_tolerance = 25200000
 
 pub const min_ada_spendable = 300000
+
+pub const max_ada_spendable = 5000000

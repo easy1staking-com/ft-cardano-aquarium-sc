@@ -399,6 +399,13 @@ fn validate_payment_output(
   ada_used: Int,
 ) {
   and {
+    or {
+      and {
+        payingToken.amount == 0,
+        ada_used <= constants.max_ada_spendable,
+      },
+      payingToken.amount > 0,
+    },
     ada_used >= constants.min_ada_spendable,
     ada_used * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
