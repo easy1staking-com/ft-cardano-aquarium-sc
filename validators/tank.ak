@@ -7,6 +7,7 @@ use cardano/assets.{Value, quantity_of, reduce}
 use cardano/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction,
 }
+use constants
 use types/datum.{DatumParameters, DatumTank}
 use types/general.{CardanoToken}
 use types/redeemer.{
@@ -81,7 +82,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             and {
               list.length(tank_inputs) == 1,
               own_ref == inputTank.output_reference,
-              verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_tank_output(inputTank, outputTank),
               validate_payment_output(
                 outputPayment,
@@ -136,7 +136,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
               own_ref == inputTank.output_reference,
               // verify that the paying token is greater than the fee
               list.length(tank_inputs) == 1,
-              verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_payment_output(
                 outputPayment,
                 outputPaymentAmount,
@@ -279,7 +278,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             and {
               list.length(tank_inputs) == 1,
               own_ref == inputTank.output_reference,
-              verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_payment_output_oracle(
                 outputPayment,
                 outputPaymentAmount,
@@ -357,7 +355,6 @@ validator tank(stakingContract: ByteArray, params_contract_hash: ByteArray) {
             and {
               list.length(tank_inputs) == 1,
               own_ref == inputTank.output_reference,
-              verify_paying_with_allowed_token(datum.allowedTokens, payingToken),
               validate_tank_output(inputTank, outputTank),
               validate_payment_output_oracle(
                 outputPayment,
@@ -402,6 +399,7 @@ fn validate_payment_output(
   ada_used: Int,
 ) {
   and {
+    ada_used >= constants.min_ada_spendable,
     ada_used * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
     check_dos_protection(outputPayment.value),
@@ -436,13 +434,6 @@ fn validate_payment_output_oracle(
     outputPayment.address == tankOwner,
     check_dos_protection(outputPayment.value),
   }
-}
-
-fn verify_paying_with_allowed_token(
-  allowedTokens: List<CardanoToken>,
-  payingToken: CardanoToken,
-) {
-  list.has(allowedTokens, payingToken)
 }
 
 fn check_dos_protection(value: Value) {

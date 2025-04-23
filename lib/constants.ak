@@ -13,3 +13,5 @@ pub const orcfax_identifier_feed_asset_name = ""
 
 //7 hours max time hearbeat
 pub const max_orcfax_tolerance = 25200000
+
+pub const min_ada_spendable = 300000
