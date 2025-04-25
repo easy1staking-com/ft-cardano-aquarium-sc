@@ -437,6 +437,13 @@ fn validate_payment_output_oracle(
 
   expect Some(minTokenPayment) = rational.div(from_int(used_ada), tokenPrice)
   and {
+    or {
+      and {
+        payingToken.amount == 0,
+        used_ada <= constants.max_ada_spendable,
+      },
+      payingToken.amount > 0,
+    },
     rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
     check_dos_protection(outputPayment.value),
