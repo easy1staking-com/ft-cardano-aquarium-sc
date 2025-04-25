@@ -419,7 +419,7 @@ fn validate_payment_output_oracle(
   payingToken: CardanoToken,
   tankOwner: Address,
   oraclePriceFeed: OraclePriceFeed,
-  used_ada: Int,
+  ada_used: Int,
 ) {
   expect Some(tokenPrice) =
     when oraclePriceFeed is {
@@ -435,15 +435,16 @@ fn validate_payment_output_oracle(
         rational.new(token_price, denominator)
     }
 
-  expect Some(minTokenPayment) = rational.div(from_int(used_ada), tokenPrice)
+  expect Some(minTokenPayment) = rational.div(from_int(ada_used), tokenPrice)
   and {
     or {
       and {
         payingToken.amount == 0,
-        used_ada <= constants.max_ada_spendable,
+        ada_used <= constants.max_ada_spendable,
       },
       payingToken.amount > 0,
     },
+    ada_used >= constants.min_ada_spendable,
     rational.ceil(minTokenPayment) * payingToken.amount / payingToken.divider <= outputPaymentAmount,
     outputPayment.address == tankOwner,
     check_dos_protection(outputPayment.value),
