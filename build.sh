@@ -40,8 +40,9 @@ mv plutus-tmp.json plutus.json
 aiken blueprint apply -m tank -v tank $PREVIEW_STAKER_HASH -o plutus-tmp.json
 mv plutus-tmp.json plutus.json
 aiken blueprint apply -m tank -v tank $PREVIEW_PARAMS_CONTRACT_HASH -o plutus-tmp.json
-mv plutus-tmp.json plutus.json
+mv plutus-tmp.json plutus-pv.json
 
+aiken build &> /dev/null
 
 # ## MAINNET ##
 # MAINNET_PARAMS_BOOTSTRAP_UTXO_HASH=58201168D4A03AE8293F9D8D9260A5C29B7215EB21A110BC0E3C4B90C33ADBFEBE5F
@@ -72,4 +73,6 @@ mv plutus-tmp.json plutus.json
 # aiken blueprint apply -m tank -v tank $MAINNET_STAKER_HASH -o plutus-tmp.json
 # mv plutus-tmp.json plutus.json
 # aiken blueprint apply -m tank -v tank $MAINNET_PARAMS_CONTRACT_HASH -o plutus-tmp.json
-# mv plutus-tmp.json plutus.json
+# mv plutus-tmp.json plutus-mn.json
+
+# aiken build &> /dev/null
